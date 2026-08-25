@@ -1,0 +1,12 @@
+# Optional. Entirely free (local Docker only, no paid registry/cloud).
+# Use only if the team wants a one-command reproducible environment;
+# the conda path in README §6 is the tested default for the hackathon.
+version: "3.9"
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./products:/app/products
