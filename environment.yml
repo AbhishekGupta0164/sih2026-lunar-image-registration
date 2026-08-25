@@ -1,0 +1,31 @@
+name: selene
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - gdal
+  - rasterio
+  - pyproj
+  - shapely
+  - opencv
+  - scikit-image
+  - scikit-learn
+  - pvl
+  - pydantic
+  - pyyaml
+  - rich
+  - loguru
+  - pytest
+  - pip
+  - pip:
+      - fastapi
+      - uvicorn[standard]
+      - python-multipart
+      - reportlab
+      # Install separately after env creation (see README §6):
+      # - torch / torchvision (CPU or CUDA wheel, matched to your machine)
+      # - lightglue
+      # - kornia
+      # - simpleitk
