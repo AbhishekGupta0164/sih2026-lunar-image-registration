@@ -1,0 +1,30 @@
+{
+    "metrics": {
+        "total_matches": 1522,
+        "ransac_inliers": 1501,
+        "inlier_ratio_pct": 98.62023653088042,
+        "warp_rmse_px": 0.05170431028134238,
+        "nni_spatial_score": 0.6639769462085214,
+        "grid_occupied_cells": 16,
+        "grid_coverage_pct": 100.0
+    },
+    "ground_truth": {
+        "rotation_deg": 7.0,
+        "scale": 0.92,
+        "translation_x_px": 35.0,
+        "translation_y_px": 20.0,
+        "gamma_illumination": 0.7
+    },
+    "recovered_params": {
+        "rotation_deg": 6.9994233277716225,
+        "scale": 0.9199852091672738,
+        "tx_px": 34.995343685554076,
+        "ty_px": 20.050901257029636
+    },
+    "errors": {
+        "rotation_err_deg": 0.0005766722283775394,
+        "scale_err": 1.479083272626358e-05,
+        "translation_x_err_px": 0.004656314445924181,
+        "translation_y_err_px": 0.050901257029636326
+    }
+}
