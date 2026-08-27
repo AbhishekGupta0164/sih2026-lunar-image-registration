@@ -6,10 +6,10 @@ from selene.warp.subpixel_lk import refine_subpixel_lk
 
 
 def test_subpixel_lk_convergence():
-    # Create smooth synthetic texture
-    img_ref = np.zeros((200, 200), dtype=np.float32)
-    cv2.circle(img_ref, (100, 100), 30, 1.0, -1)
-    img_ref = cv2.GaussianBlur(img_ref, (15, 15), 3.0)
+    # Create rich synthetic texture with clear gradients
+    y, x = np.mgrid[0:200, 0:200]
+    img_ref = (np.exp(-((x - 100.0)**2 + (y - 100.0)**2) / 400.0) + 0.3 * np.sin(x * 0.2) * np.cos(y * 0.2)).astype(np.float32)
+    img_ref = (img_ref - img_ref.min()) / (img_ref.max() - img_ref.min() + 1e-6)
 
     # Shift by known subpixel amount (dx=0.4, dy=-0.3)
     M = np.array([[1.0, 0.0, 0.4], [0.0, 1.0, -0.3]], dtype=np.float32)
@@ -22,7 +22,7 @@ def test_subpixel_lk_convergence():
         img_ref, img_mov, pts_ref, pts_mov, patch_size=31, max_iters=30
     )
 
-    assert valid[0] is True
+    assert bool(valid[0]) is True
     # The refined moving point should align back with the shifted position
     assert np.isclose(refined_mov[0, 0], 100.4, atol=0.1)
     assert np.isclose(refined_mov[0, 1], 99.7, atol=0.1)

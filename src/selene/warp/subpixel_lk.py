@@ -74,13 +74,15 @@ def refine_subpixel_lk(
         grad_y, grad_x = np.gradient(T)
         grad = np.stack([grad_x.ravel(), grad_y.ravel()], axis=1)  # (P^2, 2)
 
-        # Hessian matrix H = sum(grad^T * grad)
+        # Hessian matrix H = sum(grad^T * grad) with Tikhonov regularization
         H = grad.T @ grad
-        if np.linalg.cond(H) > 1e4 or np.linalg.det(H) < 1e-6:
+        trace_H = np.trace(H)
+        if trace_H < 1e-8:
             valid_mask[i] = False
             continue
 
-        H_inv = np.linalg.inv(H)
+        H_reg = H + np.eye(2, dtype=np.float32) * (1e-6 * max(1.0, float(trace_H)))
+        H_inv = np.linalg.inv(H_reg)
 
         # Iterative update on moving image position (p = [dx, dy])
         cur_mx, cur_my = mx, my
@@ -104,11 +106,12 @@ def refine_subpixel_lk(
             # Error image: error = I(W(x; p)) - T(x)
             diff = (I_warp - T).ravel()
 
-            # delta_p = H_inv * sum(grad^T * diff)
+            # In inverse-compositional LK: dp = H_inv @ (grad.T @ diff), update is p <- p - dp
             dp = H_inv @ (grad.T @ diff)
+            dp = np.clip(dp, -3.0, 3.0)
 
-            cur_mx += dp[0]
-            cur_my += dp[1]
+            cur_mx -= dp[0]
+            cur_my -= dp[1]
 
             if np.linalg.norm(dp) < eps:
                 converged = True
