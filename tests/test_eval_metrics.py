@@ -1,10 +1,24 @@
-"""Placeholder test module: test_eval_metrics.
-
-Fill in as the corresponding src/selene module is implemented.
-"""
+"""Tests for evaluation metrics and uniformity."""
 import pytest
+import numpy as np
+from selene.eval.metrics import compute_metrics
+from selene.eval.uniformity import nni_score, grid_coverage
 
 
-@pytest.mark.skip(reason="Not yet implemented")
-def test_placeholder():
-    ...
+def test_compute_metrics_perfect_alignment():
+    pts_src = np.array([[10, 10], [20, 20], [30, 30]], dtype=np.float32)
+    pts_dst = pts_src.copy()
+
+    metrics = compute_metrics(pts_src, pts_dst, gsd_m=2.0)
+    assert metrics.n_raw == 3
+    assert metrics.n_inliers == 3
+    assert metrics.inlier_ratio == 1.0
+    assert metrics.rmse_px == 0.0
+    assert metrics.rmse_m == 0.0
+
+
+def test_grid_coverage():
+    # 4 points in distinct quadrants
+    pts = np.array([[100, 100], [800, 100], [100, 800], [800, 800]], dtype=np.float32)
+    cov = grid_coverage(pts, image_shape=(1000, 1000), grid_cells=2)
+    assert cov == 1.0  # All 4 cells occupied

@@ -1,4 +1,18 @@
-"""Matchers package: every expert that can propose correspondences, each tagged with a method-id.
+"""Matchers package: Gated matcher ensemble with SIFT, LightGlue, Phase Correlation, Mutual Information, and Crater Graph routing.
 
 Owner: P3
 """
+from .sift_baseline import match_sift
+from .lightglue_matcher import match_lightglue
+from .phase_correlation import match_phase_correlation
+from .mutual_information import match_mutual_information
+from .gate import select_matcher, route_and_match
+
+__all__ = [
+    "match_sift",
+    "match_lightglue",
+    "match_phase_correlation",
+    "match_mutual_information",
+    "select_matcher",
+    "route_and_match",
+]
