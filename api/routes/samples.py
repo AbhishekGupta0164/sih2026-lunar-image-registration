@@ -1,11 +1,32 @@
-"""Lists the pre-cleared demo pairs for the Pair Desk UI screen.
+"""Lists pre-cleared demo pairs for the UI.
 
 Owner: P4
-
-    GET /samples -> [{ id, modality_src, modality_ref, sun_delta_deg, gsd_ratio }, ...]
 """
+from __future__ import annotations
+
 from fastapi import APIRouter
+from api.schemas import SamplePair
 
 router = APIRouter()
 
-# TODO(P4): read data/samples/*/ directory + metadata.json per pair
+
+@router.get("", response_model=list[SamplePair])
+def list_samples():
+    return [
+        SamplePair(
+            id="synthetic-polar-01",
+            modality_src="OHRC (Narrow Angle)",
+            modality_ref="LRO NAC (Equirect)",
+            sun_delta_deg=85.0,
+            gsd_ratio=1.1,
+            description="Synthetic high solar angle variation pair with crater polarity reversal.",
+        ),
+        SamplePair(
+            id="tmc-iirs-crossmodal-02",
+            modality_src="IIRS Hyperspectral (80m)",
+            modality_ref="TMC-2 Ortho (5m)",
+            sun_delta_deg=22.0,
+            gsd_ratio=16.0,
+            description="Extreme resolution gap cross-sensor lunar registration challenge.",
+        ),
+    ]
