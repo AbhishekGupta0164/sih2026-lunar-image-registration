@@ -6,10 +6,13 @@ Owner: P1
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .metadata import ImageMetadata, extract_metadata
+
+_log = logging.getLogger("selene.ingest.pair")
 
 
 @dataclass(frozen=True)
@@ -53,29 +56,56 @@ class Pair:
             Frozen :class:`Pair` instance.
         """
         def _find_label(path: Path) -> dict:
+            """Locate and load a metadata sidecar for *path*.
+
+            Search order:
+              1. Exact-stem JSON sidecar (e.g. reference.json, synthetic_target.json)
+                 — must contain at least one of the recognised metadata keys
+                   (sun_azimuth_deg, gsd_m, SOLAR_AZIMUTH, MAP_SCALE …).
+                 ground_truth.json is intentionally skipped because it records
+                 geometric transforms, not image metadata.
+              2. PDS3 .lbl / .LBL label file via pvl
+              3. PDS4 .xml label file via pvl
+              4. Filename-inferred sensor + GSD for well-known instrument prefixes.
+            """
             if not path.exists():
                 return {}
-            # Try adjacent .json metadata first
+
+            # --- 1. Exact-stem JSON sidecar ---------------------------------
+            import json as _json
+            _METADATA_KEYS = {
+                "sun_azimuth_deg", "sun_az", "sun_elevation_deg", "sun_el",
+                "gsd_m", "sensor_id",
+                "SOLAR_AZIMUTH", "SUB_SOLAR_AZIMUTH", "SOLAR_ELEVATION",
+                "MAP_SCALE", "PIXEL_SCALE", "INSTRUMENT_ID",
+            }
             json_candidate = path.with_suffix(".json")
-            if json_candidate.exists():
+            if json_candidate.exists() and json_candidate.stem != "ground_truth":
                 try:
-                    import json
                     with open(json_candidate) as f:
-                        return json.load(f)
+                        data = _json.load(f)
+                    # Accept only if it carries at least one recognised metadata key
+                    if isinstance(data, dict) and _METADATA_KEYS & set(data.keys()):
+                        _log.debug(f"Loaded JSON sidecar: {json_candidate}")
+                        return data
                 except Exception:
                     pass
-            # Try adjacent .lbl or .xml
-            for ext in (".lbl", ".LBL", ".xml"):
+
+            # --- 2 & 3. PDS3 / PDS4 label files ----------------------------
+            for ext in (".lbl", ".LBL", ".xml", ".XML"):
                 candidate = path.with_suffix(ext)
                 if candidate.exists():
                     try:
                         import pvl
-                        return dict(pvl.load(str(candidate)))
+                        lbl = dict(pvl.load(str(candidate)))
+                        _log.debug(f"Loaded PDS label: {candidate}")
+                        return lbl
                     except Exception:
                         pass
-            # Fallback: infer sensor & GSD from path name if known
+
+            # --- 4. Name-based heuristic inference --------------------------
             name_upper = path.name.upper()
-            inferred = {}
+            inferred: dict = {}
             if "OHRC" in name_upper:
                 inferred["INSTRUMENT_ID"] = "OHRC"
                 inferred["MAP_SCALE"] = 0.25
@@ -92,6 +122,8 @@ class Pair:
                 inferred["INSTRUMENT_ID"] = "LRO_WAC"
                 inferred["MAP_SCALE"] = 100.0
 
+            if inferred:
+                _log.debug(f"Name-inferred metadata for {path.name}: {inferred}")
             return inferred
 
         ref_p = Path(ref)
@@ -102,6 +134,18 @@ class Pair:
 
         ref_meta = extract_metadata(ref_lbl_dict)
         mov_meta = extract_metadata(mov_lbl_dict)
+
+        # ── Verification log: always print real values so silent defaults are visible
+        _log.info(
+            f"ref_meta  | sensor={ref_meta.sensor_id!r:10s}  "
+            f"az={ref_meta.sun_azimuth:6.1f}°  el={ref_meta.sun_elevation:5.1f}°  "
+            f"gsd={ref_meta.gsd_m:.3f} m/px"
+        )
+        _log.info(
+            f"mov_meta  | sensor={mov_meta.sensor_id!r:10s}  "
+            f"az={mov_meta.sun_azimuth:6.1f}°  el={mov_meta.sun_elevation:5.1f}°  "
+            f"gsd={mov_meta.gsd_m:.3f} m/px"
+        )
 
         return cls(
             ref_path=ref_p,
