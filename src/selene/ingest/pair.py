@@ -52,11 +52,60 @@ class Pair:
         Returns:
             Frozen :class:`Pair` instance.
         """
-        ref_meta = extract_metadata(ref_label or {})
-        mov_meta = extract_metadata(mov_label or {})
+        def _find_label(path: Path) -> dict:
+            if not path.exists():
+                return {}
+            # Try adjacent .json metadata first
+            json_candidate = path.with_suffix(".json")
+            if json_candidate.exists():
+                try:
+                    import json
+                    with open(json_candidate) as f:
+                        return json.load(f)
+                except Exception:
+                    pass
+            # Try adjacent .lbl or .xml
+            for ext in (".lbl", ".LBL", ".xml"):
+                candidate = path.with_suffix(ext)
+                if candidate.exists():
+                    try:
+                        import pvl
+                        return dict(pvl.load(str(candidate)))
+                    except Exception:
+                        pass
+            # Fallback: infer sensor & GSD from path name if known
+            name_upper = path.name.upper()
+            inferred = {}
+            if "OHRC" in name_upper:
+                inferred["INSTRUMENT_ID"] = "OHRC"
+                inferred["MAP_SCALE"] = 0.25
+            elif "TMC" in name_upper:
+                inferred["INSTRUMENT_ID"] = "TMC2"
+                inferred["MAP_SCALE"] = 5.0
+            elif "IIRS" in name_upper:
+                inferred["INSTRUMENT_ID"] = "IIRS"
+                inferred["MAP_SCALE"] = 80.0
+            elif "NAC" in name_upper:
+                inferred["INSTRUMENT_ID"] = "LRO_NAC"
+                inferred["MAP_SCALE"] = 0.5
+            elif "WAC" in name_upper:
+                inferred["INSTRUMENT_ID"] = "LRO_WAC"
+                inferred["MAP_SCALE"] = 100.0
+
+            return inferred
+
+        ref_p = Path(ref)
+        mov_p = Path(mov)
+
+        ref_lbl_dict = ref_label if ref_label is not None else _find_label(ref_p)
+        mov_lbl_dict = mov_label if mov_label is not None else _find_label(mov_p)
+
+        ref_meta = extract_metadata(ref_lbl_dict)
+        mov_meta = extract_metadata(mov_lbl_dict)
+
         return cls(
-            ref_path=Path(ref),
-            mov_path=Path(mov),
+            ref_path=ref_p,
+            mov_path=mov_p,
             ref_meta=ref_meta,
             mov_meta=mov_meta,
         )

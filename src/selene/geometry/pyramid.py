@@ -63,3 +63,58 @@ def build_gsd_pyramid(
 
     # coarses is finest→coarsest; reverse so output is coarsest→finest
     return list(reversed(coarses)) + [(img, gsd_m)]
+
+
+def resample_to_gsd(
+    img: np.ndarray,
+    src_gsd_m: float,
+    target_gsd_m: float,
+) -> np.ndarray:
+    """Resample an image from *src_gsd_m* to *target_gsd_m*.
+
+    Only downsamples (coarsens).  If *target_gsd_m* ≤ *src_gsd_m* the
+    original array is returned unchanged — we never fabricate detail by
+    upscaling.
+
+    Args:
+        img:          2D float32 (or uint8) input image.
+        src_gsd_m:    Native GSD of the image in metres/pixel.
+        target_gsd_m: Desired output GSD in metres/pixel.
+
+    Returns:
+        Resampled float32 image at *target_gsd_m* resolution.
+    """
+    if img.dtype != np.float32:
+        img = img.astype(np.float32)
+
+    if target_gsd_m <= src_gsd_m:
+        return img.copy()
+
+    scale = target_gsd_m / src_gsd_m  # > 1 ⇒ downsample
+    new_h = max(4, int(img.shape[0] / scale))
+    new_w = max(4, int(img.shape[1] / scale))
+    return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+
+def upscale_coordinates(
+    pts: np.ndarray,
+    from_gsd_m: float,
+    to_gsd_m: float,
+) -> np.ndarray:
+    """Map pixel coordinates from one GSD space to another.
+
+    Example: a point at (10, 10) in a 5 m/px image corresponds to
+    (100, 100) in a 0.5 m/px image.
+
+    Args:
+        pts:        (N, 2) array of (x, y) coordinates in *from_gsd_m* space.
+        from_gsd_m: GSD of the coordinate system *pts* are currently in.
+        to_gsd_m:   GSD of the target coordinate system.
+
+    Returns:
+        (N, 2) float32 array of rescaled coordinates.
+    """
+    if len(pts) == 0:
+        return pts.copy()
+    scale = from_gsd_m / to_gsd_m  # > 1 when going coarse → fine
+    return (pts * scale).astype(np.float32)

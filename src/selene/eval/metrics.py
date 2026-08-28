@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 import numpy as np
+from selene.eval.uniformity import nni_score, grid_coverage
 
 
 @dataclass
@@ -19,6 +20,8 @@ class MetricsResult:
     ce90_px: float
     ce90_m: float
     mean_residual_px: float
+    nni_index: float = 0.0
+    grid_coverage_fraction: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -30,6 +33,8 @@ def compute_metrics(
     inlier_mask: np.ndarray | None = None,
     gsd_m: float = 1.0,
     H_fit: np.ndarray | None = None,
+    image_shape: tuple[int, int] = (1024, 1024),
+    shadow_mask: np.ndarray | None = None,
 ) -> MetricsResult:
     """Calculate geodetic accuracy metrics on matched point correspondences.
 
@@ -39,13 +44,15 @@ def compute_metrics(
         inlier_mask: (N,) Boolean inlier mask.
         gsd_m: Ground sampling distance in metres per pixel.
         H_fit: Optional fitted 3x3 Homography for residual calculation.
+        image_shape: (height, width) of the image space.
+        shadow_mask: Optional shadow exclusion mask.
 
     Returns:
         MetricsResult with pixel- and metre-scale statistics.
     """
     n_raw = len(pts_src)
     if n_raw == 0:
-        return MetricsResult(0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        return MetricsResult(0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
     if inlier_mask is None:
         inlier_mask = np.ones(n_raw, dtype=bool)
@@ -57,7 +64,7 @@ def compute_metrics(
     inliers_dst = pts_dst[inlier_mask]
 
     if len(inliers_src) == 0:
-        return MetricsResult(n_raw, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        return MetricsResult(n_raw, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
     if H_fit is not None:
         # Project source points through H
@@ -78,6 +85,10 @@ def compute_metrics(
 
     mean_res = float(np.mean(residuals))
 
+    # Uniformity Metrics
+    nni_val = nni_score(inliers_src, area_shape=image_shape)
+    cov_val = grid_coverage(inliers_src, image_shape=image_shape)
+
     return MetricsResult(
         n_raw=n_raw,
         n_inliers=n_inliers,
@@ -87,4 +98,7 @@ def compute_metrics(
         ce90_px=round(ce90_px, 4),
         ce90_m=round(ce90_m, 4),
         mean_residual_px=round(mean_res, 4),
+        nni_index=round(nni_val, 4),
+        grid_coverage_fraction=round(cov_val, 4),
     )
+
