@@ -77,13 +77,33 @@ const defaultSettings: SettingsConfig = {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const defaultReferenceImage: ImageMetadata = {
+  name: 'reference.png (LRO NAC Grid)',
+  size: 502748,
+  type: 'image/png',
+  sensor: 'LRO NAC',
+  gsd: '0.50 m/px',
+  sunAngle: '142.1° / 34.5°',
+  previewUrl: '/synthetic/reference.png',
+};
+
+const defaultSourceImage: ImageMetadata = {
+  name: 'synthetic_target.png (OHRC 7° Rot / 0.92 Scale)',
+  size: 726420,
+  type: 'image/png',
+  sensor: 'Chandrayaan-2 OHRC',
+  gsd: '0.50 m/px',
+  sunAngle: '284.3° / 32.1°',
+  previewUrl: '/synthetic/synthetic_target.png',
+};
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentView, setCurrentView] = useState<WorkbenchView>('dashboard');
   const [isAppMode, setIsAppMode] = useState<boolean>(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
-  const [referenceImage, setReferenceImage] = useState<ImageMetadata | null>(null);
-  const [sourceImage, setSourceImage] = useState<ImageMetadata | null>(null);
+  const [referenceImage, setReferenceImage] = useState<ImageMetadata | null>(defaultReferenceImage);
+  const [sourceImage, setSourceImage] = useState<ImageMetadata | null>(defaultSourceImage);
   const [sourceSensor, setSourceSensorState] = useState<string>('Chandrayaan-2 OHRC');
 
   const [gridCells, setGridCells] = useState<string>('8 × 8');
@@ -268,7 +288,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         sensor: 'LRO NAC (Synthetic Ground Truth Grid)',
         gsd: '0.50 m/px',
         sunAngle: '142.1° / 34.5°',
-        previewUrl: `http://localhost:8000${data.reference_image_url}`,
+        previewUrl: data.reference_image_url || '/synthetic/reference.png',
       };
 
       const srcMeta: ImageMetadata = {
@@ -278,7 +298,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         sensor: 'Chandrayaan-2 OHRC (Synthetic Warped)',
         gsd: '0.50 m/px',
         sunAngle: '284.3° / 32.1°',
-        previewUrl: `http://localhost:8000${data.source_image_url}`,
+        previewUrl: data.source_image_url || '/synthetic/synthetic_target.png',
       };
 
       setReferenceImage(refMeta);
