@@ -21,7 +21,7 @@ from selene.utils.logging import setup_logging, get_logger
 from selene.ingest.pair import Pair
 from selene.ingest.geotiff_reader import read_geotiff
 from selene.ingest.pds_reader import read_pds3, read_pds4
-from selene.geometry.pyramid import resample_to_gsd, upscale_coordinates
+from selene.geometry.pyramid import resample_to_gsd, upscale_coordinates, match_coarse_to_fine_pyramid
 from selene.illum.shadow_mask import detect_shadows
 from selene.matchers.gate import route_and_match
 from selene.robust.magsac import find_homography_magsac
@@ -94,9 +94,15 @@ def run_pipeline(
     shadow_mask_ref = detect_shadows(img_ref_work)
     log.info(f"Shadow Mask: computed exclusion zones (src_shadow_pixels={np.count_nonzero(shadow_mask_src)})")
 
-    # ── Stage 3/4: Matching Ensemble & Gate ───────────────────────────────────
-    log.info("Stage 3/4: Routing through matcher gate...")
-    pts_src_w, pts_ref_w, scores, matcher_name = route_and_match(img_src_work, img_ref_work, pair, config)
+    # ── Stage 3/4: Matching Ensemble & Gate (Multi-Scale Pyramid) ───────────────
+    log.info("Stage 3/4: Routing through matcher gate via GSD pyramid...")
+    pts_src_w, pts_ref_w, scores, matcher_name = match_coarse_to_fine_pyramid(
+        img_src=img_src,
+        img_ref=img_ref,
+        pair=pair,
+        config=config,
+        route_and_match_fn=route_and_match,
+    )
     log.info(f"Matcher [{matcher_name}] found {len(pts_src_w)} candidate correspondences")
 
     if len(pts_src_w) < 4:
