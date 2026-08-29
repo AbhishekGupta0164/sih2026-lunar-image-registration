@@ -10,7 +10,7 @@ export type WorkbenchView =
   | 'settings'
   | 'about';
 
-export type MatcherType = 'auto' | 'lightglue' | 'crater_graph' | 'phase_corr' | 'mutual_info';
+export type MatcherType = 'auto' | 'loftr' | 'xfeat' | 'lightglue' | 'crater_graph' | 'phase_corr' | 'mutual_info' | 'sift';
 
 export interface ImageMetadata {
   name: string;
@@ -20,7 +20,8 @@ export interface ImageMetadata {
   gsd: string;
   sunAngle: string;
   previewUrl: string;
-  file: File;
+  file?: File;
+  bandIdx?: number;
 }
 
 export interface ImagePairState {
@@ -37,6 +38,8 @@ export interface PipelineStageInfo {
 
 export interface RegistrationResults {
   rmse: number;
+  rmseVal?: number;
+  qualityGatePass?: boolean;
   raw: number;
   inliers: number;
   ratio: number;

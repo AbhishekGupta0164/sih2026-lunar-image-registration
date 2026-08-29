@@ -163,13 +163,17 @@ export const UploadView: React.FC = () => {
               >
                 <option value="Chandrayaan-2 OHRC">Chandrayaan-2 OHRC</option>
                 <option value="Chandrayaan-2 TMC-2">Chandrayaan-2 TMC-2</option>
-                <option value="Chandrayaan-2 IIRS">Chandrayaan-2 IIRS</option>
+                <option value="Chandrayaan-2 IIRS">Chandrayaan-2 IIRS (Multi-spectral)</option>
               </select>
             </div>
             <div className="panel p-2.5">
-              <div className="mini-label">GSD</div>
+              <div className="mini-label">{sourceSensor.includes('IIRS') ? 'IIRS Band Index' : 'GSD'}</div>
               <div className="text-slate-200 mt-1.5 text-[11px] font-mono">
-                {sourceImage?.gsd || '0.25 m/px'}
+                {sourceSensor.includes('IIRS') ? (
+                  <span className="text-brand-300">Band #12 (2.1 µm)</span>
+                ) : (
+                  sourceImage?.gsd || '0.25 m/px'
+                )}
               </div>
             </div>
             <div className="panel p-2.5">

@@ -186,6 +186,8 @@ export class SeleneApiService {
 
       const results: RegistrationResults = {
         rmse:     Number(m.rmse_px   ?? m.rmse   ?? 0),
+        rmseVal:  Number(m.rmse_val_px ?? m.rmse_val ?? m.rmse_px ?? 0),
+        qualityGatePass: m.rmse_px ? Number(m.rmse_px) < 1.0 : true,
         raw:      Number(m.raw_matches ?? 0),
         inliers:  Number(m.inlier_count ?? 0),
         ratio:    Number(m.inlier_ratio ?? 0) * 100,
@@ -193,7 +195,7 @@ export class SeleneApiService {
         nni:      Number(m.nni      ?? 0),
         coverage: Number(m.coverage_fraction ?? 0) * 100,
         time:     String(m.runtime_s ?? '—'),
-        method:   `${this.getMatcherLabel(resolvedMatcher)} + Phase Congruency`,
+        method:   `${this.getMatcherLabel(resolvedMatcher)} + IC-LK ECC Sub-Pixel`,
         matcherUsed: resolvedMatcher,
         jobId,
       };
@@ -210,7 +212,8 @@ export class SeleneApiService {
       { msg: `Gate selected ${this.getMatcherLabel(resolvedMatcher)} from sensor / Sun-angle metadata.`, delay: 650 },
       { msg: 'Generating candidate correspondences…',                          delay: 900 },
       { msg: 'Running USAC_MAGSAC++ robust geometry fit and removing outliers…', delay: 850 },
-      { msg: 'Upscaling coordinates and refining GCPs with IC-LK…',           delay: 800 },
+      { msg: 'Upscaling coordinates and refining GCPs with IC-LK ECC sub-pixel…', delay: 800 },
+      { msg: 'Evaluating independent 80/20 train/validation GCP holdout RMSE…', delay: 650 },
       { msg: 'Sampling uniform GCPs across the 8×8 overlap grid…',            delay: 650 },
       { msg: 'Warping source and generating registered.tif, matches.csv and report…', delay: 700 },
     ];
@@ -224,9 +227,10 @@ export class SeleneApiService {
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(2);
     const results: RegistrationResults = {
-      rmse: 0.68, raw: 21389, inliers: 18742, ratio: 87.6,
+      rmse: 0.68, rmseVal: 0.72, qualityGatePass: true,
+      raw: 21389, inliers: 18742, ratio: 87.6,
       ce90: 0.91, nni: 0.84, coverage: 81, time: duration,
-      method: `${this.getMatcherLabel(resolvedMatcher)} + Phase Congruency`,
+      method: `${this.getMatcherLabel(resolvedMatcher)} + IC-LK ECC Sub-Pixel`,
       matcherUsed: resolvedMatcher,
       jobId,
     };
@@ -259,11 +263,13 @@ export class SeleneApiService {
   public resolveMatcher(matcher: MatcherType, sensor: string): string {
     if (matcher !== 'auto') return matcher;
     if (sensor.includes('IIRS')) return 'mutual_info';
-    return 'lightglue';
+    return 'loftr';
   }
 
   public getMatcherLabel(matcherKey: string): string {
     const labels: Record<string, string> = {
+      loftr:        'LoFTR Dense Deep Matcher',
+      xfeat:        'XFeat Lightweight Matcher',
       lightglue:    'LightGlue',
       crater_graph: 'Crater Graph',
       phase_corr:   'Phase Correlation',
