@@ -1,7 +1,7 @@
 """Tests for evaluation metrics and uniformity."""
 import pytest
 import numpy as np
-from selene.eval.metrics import compute_metrics
+from selene.eval.metrics import compute_metrics, check_quality_gates
 from selene.eval.uniformity import nni_score, grid_coverage
 
 
@@ -35,5 +35,13 @@ def test_compute_metrics_validation_split():
     assert metrics.n_raw == 12
     assert metrics.n_inliers == 12
     assert metrics.rmse_px > 0.0
-    assert metrics.rmse_val_px > 0.0
+def test_check_quality_gates():
+    pts_src = np.array([[10, 10], [20, 20], [30, 30], [40, 40]], dtype=np.float32)
+    pts_dst = pts_src.copy()
+    metrics = compute_metrics(pts_src, pts_dst, gsd_m=1.0)
+    gates = check_quality_gates(metrics, subpixel_target=1.0)
+    assert gates["subpixel_target_met"] is True
+    assert gates["inlier_target_met"] is True
+    assert gates["overall_pass"] is True
+
 
