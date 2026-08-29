@@ -22,3 +22,18 @@ def test_grid_coverage():
     pts = np.array([[100, 100], [800, 100], [100, 800], [800, 800]], dtype=np.float32)
     cov = grid_coverage(pts, image_shape=(1000, 1000), grid_cells=2)
     assert cov == 1.0  # All 4 cells occupied
+
+
+def test_compute_metrics_validation_split():
+    # 12 points with slight noise
+    np.random.seed(42)
+    pts_src = np.random.uniform(10, 500, (12, 2)).astype(np.float32)
+    noise = np.random.normal(0, 0.5, (12, 2)).astype(np.float32)
+    pts_dst = pts_src + noise
+
+    metrics = compute_metrics(pts_src, pts_dst, gsd_m=1.0, val_split=0.2)
+    assert metrics.n_raw == 12
+    assert metrics.n_inliers == 12
+    assert metrics.rmse_px > 0.0
+    assert metrics.rmse_val_px > 0.0
+
