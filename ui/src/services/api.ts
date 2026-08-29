@@ -241,6 +241,19 @@ export class SeleneApiService {
     return res.json() as Promise<unknown[]>;
   }
 
+  public async getSyntheticPair(): Promise<{
+    reference_image_url: string;
+    source_image_url: string;
+    ground_truth_url: string;
+    reference_name: string;
+    source_name: string;
+    ground_truth: Record<string, unknown>;
+  }> {
+    const res = await fetch(`${this.baseUrl}/samples/synthetic`);
+    if (!res.ok) throw new Error(`Synthetic pair fetch failed: ${res.statusText}`);
+    return res.json();
+  }
+
   // ── Utilities ─────────────────────────────────────────────────────────────
 
   public resolveMatcher(matcher: MatcherType, sensor: string): string {

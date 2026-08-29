@@ -44,6 +44,7 @@ interface AppContextType {
   setSelectedMatcher: (val: MatcherType) => void;
   setGeometryModel: (val: string) => void;
   clearUploads: () => void;
+  loadSyntheticPair: () => Promise<void>;
   runRegistration: () => Promise<void>;
   addLog: (message: string, type?: 'info' | 'success' | 'error') => void;
   clearLogs: () => void;
@@ -255,6 +256,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addToast('Image pair cleared. Upload new files to continue.', 'info', 'Pair Reset');
   };
 
+  const loadSyntheticPair = async () => {
+    try {
+      addLog('Fetching synthetic generated image pair from backend…', 'info');
+      const data = await seleneApi.getSyntheticPair();
+
+      const refMeta: ImageMetadata = {
+        name: data.reference_name || 'reference.png',
+        size: 502748,
+        type: 'image/png',
+        sensor: 'LRO NAC (Synthetic Ground Truth Grid)',
+        gsd: '0.50 m/px',
+        sunAngle: '142.1° / 34.5°',
+        previewUrl: `http://localhost:8000${data.reference_image_url}`,
+      };
+
+      const srcMeta: ImageMetadata = {
+        name: data.source_name || 'synthetic_target.png',
+        size: 726420,
+        type: 'image/png',
+        sensor: 'Chandrayaan-2 OHRC (Synthetic Warped)',
+        gsd: '0.50 m/px',
+        sunAngle: '284.3° / 32.1°',
+        previewUrl: `http://localhost:8000${data.source_image_url}`,
+      };
+
+      setReferenceImage(refMeta);
+      setSourceImage(srcMeta);
+      addLog('Synthetic pair loaded: reference.png and synthetic_target.png (7° rotation / 0.92 scale).', 'success');
+      addToast('Synthetic generated pair loaded into UI with visual preview!', 'success', 'Synthetic Loaded');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load synthetic pair';
+      addLog(`Error loading synthetic pair: ${msg}`, 'error');
+      addToast('Could not load synthetic pair from backend server.', 'error', 'Fetch Error');
+    }
+  };
+
   const runRegistration = async () => {
     if (isProcessing) return;
 
@@ -355,6 +392,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setSelectedMatcher,
         setGeometryModel,
         clearUploads,
+        loadSyntheticPair,
         runRegistration,
         addLog,
         clearLogs,

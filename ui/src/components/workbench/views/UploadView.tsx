@@ -11,6 +11,7 @@ export const UploadView: React.FC = () => {
     setSourceFile,
     setSourceSensor,
     clearUploads,
+    loadSyntheticPair,
     navigateTo,
   } = useApp();
 
@@ -230,12 +231,18 @@ export const UploadView: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex gap-2.5 mt-4">
+        <div className="flex gap-2.5 mt-4 flex-wrap">
           <button
             className="btn-primary px-5 py-2.5 rounded-lg text-[11px] tracking-wider"
             onClick={() => navigateTo('register')}
           >
             CONTINUE TO REGISTRATION ↗
+          </button>
+          <button
+            className="btn-secondary px-5 py-2.5 rounded-lg text-[11px] tracking-wider border-brand-400/40 text-brand-300 hover:bg-brand-500/10"
+            onClick={loadSyntheticPair}
+          >
+            ⚡ LOAD SYNTHETIC GENERATED PAIR
           </button>
           <button
             className="btn-secondary px-5 py-2.5 rounded-lg text-[11px] tracking-wider"
