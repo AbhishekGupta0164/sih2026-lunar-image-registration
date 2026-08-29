@@ -39,7 +39,106 @@ synthetic_path.mkdir(parents=True, exist_ok=True)
 app.mount("/synthetic", StaticFiles(directory=str(synthetic_path)), name="synthetic")
 
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+def root_portal():
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SELENE-MATCH API Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0b0f19;
+            color: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; color: #ffffff; }
+        p { color: #9ca3af; font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+        .grid { display: grid; gap: 12px; }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1f2937;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 14px;
+            border: 1px solid #374151;
+            transition: all 0.2s ease;
+        }
+        .btn:hover { background: #374151; border-color: #4b5563; transform: translateY(-1px); }
+        .btn-primary { background: #2563eb; border-color: #3b82f6; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .arrow { opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="badge">● API System Online (v0.1.0)</div>
+        <h1>SELENE-MATCH Backend API</h1>
+        <p>Multi-modal, illumination and scale-invariant lunar image registration microservice.</p>
+        <div class="grid">
+            <a href="http://localhost:5173" class="btn btn-primary">
+                <span>Launch UI Workbench</span>
+                <span class="arrow">➜</span>
+            </a>
+            <a href="/docs" class="btn">
+                <span>Interactive Swagger OpenAPI Docs</span>
+                <span class="arrow">↗</span>
+            </a>
+            <a href="/api/v1/health" class="btn">
+                <span>API Health Check Endpoint</span>
+                <span class="arrow">↗</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>"""
+
+
 @app.get("/health")
 @app.get("/api/v1/health")
 def health():
-    return {"status": "ok", "service": "SELENE-MATCH"}
+    return {
+        "status": "ok",
+        "service": "SELENE-MATCH API",
+        "version": "0.1.0",
+        "documentation": "/docs",
+        "health": "/api/v1/health"
+    }
+
+
