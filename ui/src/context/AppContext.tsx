@@ -257,14 +257,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const runRegistration = async () => {
     if (isProcessing) return;
+
+    // Warn but allow demo run without files
     if (!referenceImage || !sourceImage) {
       addToast(
-        'Please upload both Reference and Source images before running the pipeline.',
+        'No images uploaded — running in demo/simulation mode.',
         'warn',
-        'Upload Required'
+        'Demo Mode'
       );
-      navigateTo('upload');
-      return;
     }
 
     setIsProcessing(true);
@@ -281,14 +281,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addLog('Starting SELENE-MATCH registration pipeline.', 'info');
 
     try {
-      const res = await seleneApi.runRegistrationSimulation(
+      const { results: res } = await seleneApi.runRegistration(
+        referenceImage?.file ?? null,
+        sourceImage?.file ?? null,
         selectedMatcher,
         sourceSensor,
         (stepIndex, msg, percent) => {
           setActiveStepIndex(stepIndex);
           setPipelineProgress(percent);
           addLog(`S${stepIndex}: ${msg}`, 'info');
-        }
+        },
       );
 
       setResults(res);
@@ -300,9 +302,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         'success',
         'Pipeline Complete'
       );
-    } catch (err: any) {
+      navigateTo('results');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown failure';
       setIsProcessing(false);
-      addLog(`Pipeline error: ${err?.message || 'Unknown failure'}`, 'error');
+      addLog(`Pipeline error: ${msg}`, 'error');
       addToast('Registration pipeline encountered an error.', 'error', 'Pipeline Error');
     }
   };

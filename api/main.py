@@ -23,9 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
-app.include_router(samples.router, prefix="/samples", tags=["samples"])
-app.include_router(register.router, tags=["register"])
+# All routes under /api/v1 to match the frontend contract
+app.include_router(jobs.router,     prefix="/api/v1/jobs",    tags=["jobs"])
+app.include_router(samples.router,  prefix="/api/v1/samples", tags=["samples"])
+app.include_router(register.router, prefix="/api/v1",         tags=["register"])
 
 # Mount products directory as static files for download/viewing
 products_path = Path("products")
@@ -34,5 +35,6 @@ app.mount("/products", StaticFiles(directory=str(products_path)), name="products
 
 
 @app.get("/health")
+@app.get("/api/v1/health")
 def health():
     return {"status": "ok", "service": "SELENE-MATCH"}

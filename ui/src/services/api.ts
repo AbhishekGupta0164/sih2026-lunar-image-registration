@@ -1,3 +1,9 @@
+/**
+ * SeleneApiService
+ *
+ * All calls target http://localhost:8000/api/v1 by default.
+ * The base URL can be overridden from the Settings view.
+ */
 import { MatcherType, RegistrationResults } from '../types';
 
 export const API_BASE_URL = 'http://localhost:8000/api/v1';
@@ -5,6 +11,33 @@ export const API_BASE_URL = 'http://localhost:8000/api/v1';
 export interface PipelineStepCallback {
   (stepIndex: number, message: string, percent: number): void;
 }
+
+/** Shape returned by GET /api/v1/jobs/{job_id} */
+export interface JobStatus {
+  job_id: string;
+  stage: string;
+  progress: number;
+  done: boolean;
+  status: 'running' | 'success' | 'failed' | 'cancelled';
+  metrics?: Record<string, number | string | boolean | null>;
+  error?: string;
+  registered_geotiff_url?: string;
+  matches_csv_url?: string;
+  report_pdf_url?: string;
+  checkerboard_url?: string;
+  quiver_url?: string;
+  coverage_url?: string;
+}
+
+/** Shape returned by POST /api/v1/register/async */
+interface AsyncJobResponse {
+  job_id: string;
+  status: string;
+  poll_url: string;
+  logs_url: string;
+}
+
+const POLL_INTERVAL_MS = 1_200;
 
 export class SeleneApiService {
   private static instance: SeleneApiService;
@@ -18,61 +51,197 @@ export class SeleneApiService {
   }
 
   public setBaseUrl(url: string) {
-    this.baseUrl = url;
+    this.baseUrl = url.replace(/\/$/, '');
   }
+
+  // ── Health ────────────────────────────────────────────────────────────────
 
   public async checkHealth(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`, { method: 'GET' });
-      return response.ok;
+      const res = await fetch(`${this.baseUrl}/health`, { method: 'GET' });
+      return res.ok;
     } catch {
       return false;
     }
   }
 
-  public async runRegistrationSimulation(
+  // ── Job helpers ───────────────────────────────────────────────────────────
+
+  public async getJobStatus(jobId: string): Promise<JobStatus> {
+    const res = await fetch(`${this.baseUrl}/jobs/${jobId}`);
+    if (!res.ok) throw new Error(`Job fetch failed: ${res.statusText}`);
+    return res.json() as Promise<JobStatus>;
+  }
+
+  /** Poll a job until done; calls onStep for each new stage message. */
+  public async pollJob(
+    jobId: string,
+    onStep: PipelineStepCallback,
+    signal?: AbortSignal,
+  ): Promise<JobStatus> {
+    let stepIdx = 0;
+    const STAGE_LABELS = [
+      'Reading PDS3/PDS4/JSON labels and raster metadata…',
+      'Building common-GSD pyramid and resampling both images…',
+      'Preparing illumination-invariant representation and shadow masks…',
+      'Gate selecting matcher from sensor / Sun-angle metadata…',
+      'Generating candidate correspondences…',
+      'Running USAC_MAGSAC++ robust geometry fit and removing outliers…',
+      'Upscaling coordinates and refining GCPs with IC-LK…',
+      'Sampling uniform GCPs across the 8×8 overlap grid…',
+      'Warping source image and generating registered.tif, matches.csv and report…',
+    ];
+
+    return new Promise((resolve, reject) => {
+      const tick = async () => {
+        if (signal?.aborted) {
+          reject(new Error('Cancelled'));
+          return;
+        }
+
+        try {
+          const status = await this.getJobStatus(jobId);
+
+          // Derive step index from progress (0-1 → 0-8)
+          const newStepIdx = Math.min(
+            Math.round(status.progress * STAGE_LABELS.length),
+            STAGE_LABELS.length - 1,
+          );
+          if (newStepIdx > stepIdx || (status.done && !status.error)) {
+            stepIdx = newStepIdx;
+            const label = status.stage || STAGE_LABELS[stepIdx] || 'Processing…';
+            onStep(stepIdx, label, Math.round(status.progress * 100));
+          }
+
+          if (status.done) {
+            if (status.status === 'success') resolve(status);
+            else reject(new Error(status.error || 'Pipeline failed'));
+            return;
+          }
+
+          setTimeout(tick, POLL_INTERVAL_MS);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      tick();
+    });
+  }
+
+  // ── Registration  ─────────────────────────────────────────────────────────
+
+  /**
+   * Submit an async registration job using the actual uploaded files.
+   * Returns immediately with a jobId; use pollJob() to track progress.
+   */
+  public async submitRegistration(
+    refFile: File,
+    movFile: File,
+    configOverrides: Record<string, unknown> = {},
+  ): Promise<string> {
+    const formData = new FormData();
+    formData.append('ref_image', refFile);
+    formData.append('mov_image', movFile);
+    if (Object.keys(configOverrides).length > 0) {
+      formData.append('config_json', JSON.stringify(configOverrides));
+    }
+
+    const res = await fetch(`${this.baseUrl}/register/async`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Submit failed (${res.status}): ${text}`);
+    }
+
+    const data = (await res.json()) as AsyncJobResponse;
+    return data.job_id;
+  }
+
+  /**
+   * Full pipeline: submit → poll → return RegistrationResults.
+   *
+   * Falls back to simulation when no files are available (demo mode).
+   */
+  public async runRegistration(
+    refFile: File | null,
+    movFile: File | null,
     matcher: MatcherType,
     sensor: string,
-    onStep: PipelineStepCallback
-  ): Promise<RegistrationResults> {
-    const selectedMatcher = this.resolveMatcher(matcher, sensor);
+    onStep: PipelineStepCallback,
+    signal?: AbortSignal,
+  ): Promise<{ results: RegistrationResults; jobId: string }> {
+    // ── Real pipeline ──────────────────────────────────────────────────────
+    if (refFile && movFile) {
+      const resolvedMatcher = this.resolveMatcher(matcher, sensor);
+      const jobId = await this.submitRegistration(refFile, movFile, {
+        matcher: resolvedMatcher,
+      });
 
+      const status = await this.pollJob(jobId, onStep, signal);
+      const m = status.metrics ?? {};
+
+      const results: RegistrationResults = {
+        rmse:     Number(m.rmse_px   ?? m.rmse   ?? 0),
+        raw:      Number(m.raw_matches ?? 0),
+        inliers:  Number(m.inlier_count ?? 0),
+        ratio:    Number(m.inlier_ratio ?? 0) * 100,
+        ce90:     Number(m.ce90_px  ?? 0),
+        nni:      Number(m.nni      ?? 0),
+        coverage: Number(m.coverage_fraction ?? 0) * 100,
+        time:     String(m.runtime_s ?? '—'),
+        method:   `${this.getMatcherLabel(resolvedMatcher)} + Phase Congruency`,
+        matcherUsed: resolvedMatcher,
+        jobId,
+      };
+      return { results, jobId };
+    }
+
+    // ── Demo / simulation fallback (no files uploaded) ────────────────────
+    const resolvedMatcher = this.resolveMatcher(matcher, sensor);
+    const jobId = `demo_${Date.now()}`;
     const steps = [
-      { msg: 'Reading PDS3/PDS4/JSON labels and raster metadata...', delay: 650 },
-      { msg: 'Building common-GSD pyramid and resampling both images...', delay: 700 },
-      { msg: 'Preparing illumination-invariant representation and shadow masks...', delay: 800 },
-      { msg: `Gate selected ${this.getMatcherLabel(selectedMatcher)} from sensor / Sun-angle metadata.`, delay: 650 },
-      { msg: 'Generating candidate correspondences...', delay: 900 },
-      { msg: 'Running USAC_MAGSAC++ robust geometry fit and removing outliers...', delay: 850 },
-      { msg: 'Upscaling coordinates and refining GCPs with IC-LK...', delay: 800 },
-      { msg: 'Sampling uniform GCPs across the 8×8 overlap grid...', delay: 650 },
-      { msg: 'Warping source and generating registered.tif, matches.csv and report...', delay: 700 },
+      { msg: 'Reading PDS3/PDS4/JSON labels and raster metadata…',            delay: 650 },
+      { msg: 'Building common-GSD pyramid and resampling both images…',        delay: 700 },
+      { msg: 'Preparing illumination-invariant representation and shadow masks…', delay: 800 },
+      { msg: `Gate selected ${this.getMatcherLabel(resolvedMatcher)} from sensor / Sun-angle metadata.`, delay: 650 },
+      { msg: 'Generating candidate correspondences…',                          delay: 900 },
+      { msg: 'Running USAC_MAGSAC++ robust geometry fit and removing outliers…', delay: 850 },
+      { msg: 'Upscaling coordinates and refining GCPs with IC-LK…',           delay: 800 },
+      { msg: 'Sampling uniform GCPs across the 8×8 overlap grid…',            delay: 650 },
+      { msg: 'Warping source and generating registered.tif, matches.csv and report…', delay: 700 },
     ];
 
     const startTime = performance.now();
-
     for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      const percent = Math.round(((i + 1) / steps.length) * 100);
-      onStep(i, step.msg, percent);
-      await new Promise((resolve) => setTimeout(resolve, step.delay));
+      if (signal?.aborted) throw new Error('Cancelled');
+      onStep(i, steps[i].msg, Math.round(((i + 1) / steps.length) * 100));
+      await new Promise((resolve) => setTimeout(resolve, steps[i].delay));
     }
 
     const duration = ((performance.now() - startTime) / 1000).toFixed(2);
-
-    return {
-      rmse: 0.68,
-      raw: 21389,
-      inliers: 18742,
-      ratio: 87.6,
-      ce90: 0.91,
-      nni: 0.84,
-      coverage: 81,
-      time: duration,
-      method: `${this.getMatcherLabel(selectedMatcher)} + Phase Congruency`,
-      matcherUsed: selectedMatcher,
+    const results: RegistrationResults = {
+      rmse: 0.68, raw: 21389, inliers: 18742, ratio: 87.6,
+      ce90: 0.91, nni: 0.84, coverage: 81, time: duration,
+      method: `${this.getMatcherLabel(resolvedMatcher)} + Phase Congruency`,
+      matcherUsed: resolvedMatcher,
+      jobId,
     };
+    return { results, jobId };
   }
+
+  // ── Samples ────────────────────────────────────────────────────────────────
+
+  public async listSamples(): Promise<unknown[]> {
+    const res = await fetch(`${this.baseUrl}/samples`);
+    if (!res.ok) throw new Error(`Samples fetch failed: ${res.statusText}`);
+    return res.json() as Promise<unknown[]>;
+  }
+
+  // ── Utilities ─────────────────────────────────────────────────────────────
 
   public resolveMatcher(matcher: MatcherType, sensor: string): string {
     if (matcher !== 'auto') return matcher;
@@ -82,13 +251,20 @@ export class SeleneApiService {
 
   public getMatcherLabel(matcherKey: string): string {
     const labels: Record<string, string> = {
-      lightglue: 'LightGlue',
+      lightglue:    'LightGlue',
       crater_graph: 'Crater Graph',
-      phase_corr: 'Phase Correlation',
-      mutual_info: 'Mutual Information',
-      auto: 'Auto — Gate Routing',
+      phase_corr:   'Phase Correlation',
+      mutual_info:  'Mutual Information',
+      sift:         'SIFT Baseline',
+      auto:         'Auto — Gate Routing',
     };
     return labels[matcherKey] || matcherKey;
+  }
+
+  /** Build a full download URL for a product file. */
+  public productUrl(path: string): string {
+    // path is like "/products/job_abc/registered.tif"
+    return `http://localhost:8000${path}`;
   }
 }
 

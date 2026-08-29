@@ -46,6 +46,8 @@ export interface RegistrationResults {
   time: string;
   method: string;
   matcherUsed: string;
+  /** Job ID returned by the backend; undefined in demo/simulation mode */
+  jobId?: string;
 }
 
 export interface LogEntry {
