@@ -24,6 +24,17 @@ def test_grid_coverage():
     assert cov == 1.0  # All 4 cells occupied
 
 
+def test_compute_metrics_validation_split():
+    # 12 points with slight noise
+    np.random.seed(42)
+    pts_src = np.random.uniform(10, 500, (12, 2)).astype(np.float32)
+    noise = np.random.normal(0, 0.5, (12, 2)).astype(np.float32)
+    pts_dst = pts_src + noise
+
+    metrics = compute_metrics(pts_src, pts_dst, gsd_m=1.0, val_split=0.2)
+    assert metrics.n_raw == 12
+    assert metrics.n_inliers == 12
+    assert metrics.rmse_px > 0.0
 def test_check_quality_gates():
     pts_src = np.array([[10, 10], [20, 20], [30, 30], [40, 40]], dtype=np.float32)
     pts_dst = pts_src.copy()
@@ -32,4 +43,5 @@ def test_check_quality_gates():
     assert gates["subpixel_target_met"] is True
     assert gates["inlier_target_met"] is True
     assert gates["overall_pass"] is True
+
 
