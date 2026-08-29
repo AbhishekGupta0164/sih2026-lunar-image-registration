@@ -33,6 +33,11 @@ products_path = Path("products")
 products_path.mkdir(parents=True, exist_ok=True)
 app.mount("/products", StaticFiles(directory=str(products_path)), name="products")
 
+# Mount synthetic generated data output directory for UI display
+synthetic_path = Path("data_generation/output")
+synthetic_path.mkdir(parents=True, exist_ok=True)
+app.mount("/synthetic", StaticFiles(directory=str(synthetic_path)), name="synthetic")
+
 
 @app.get("/health")
 @app.get("/api/v1/health")
