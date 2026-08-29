@@ -1,27 +1,30 @@
 import React, { useState } from 'react';
 import { useApp } from '../../../context/AppContext';
+import { HeatmapCanvas } from '../../common/HeatmapCanvas';
 
 export const ResultsView: React.FC = () => {
-  const { referenceImage, sourceImage, isComplete, results } = useApp();
+  const { referenceImage, sourceImage, isComplete, results, settings } = useApp();
   const [activeTab, setActiveTab] = useState<'wipe' | 'checker' | 'gcp' | 'residual'>('wipe');
   const [wipeVal, setWipeVal] = useState<number>(50);
 
-  // Generate 64 checkerboard cells
+  // Generate 64 checkerboard cells using actual images
   const checkerCells = Array.from({ length: 64 }, (_, i) => {
     const row = Math.floor(i / 8);
     const col = i % 8;
-    return (row + col) % 2 === 0 ? 'cb-a' : 'cb-b';
+    return (row + col) % 2 === 0;
   });
 
   // Generate 28 GCP dots & vectors
   const gcpPoints = Array.from({ length: 28 }, (_, i) => {
     const x = 8 + ((i * 37) % 84);
     const y = 8 + ((i * 61) % 84);
-    return { x, y };
+    const dx = (i % 2 === 0 ? 1 : -1) * (12 + (i % 7) * 3);
+    const dy = (i % 3 === 0 ? -1 : 1) * (8 + (i % 5) * 2);
+    return { x, y, dx, dy };
   });
 
-  const refUrl = referenceImage?.previewUrl || '';
-  const srcUrl = sourceImage?.previewUrl || '';
+  const refUrl = referenceImage?.previewUrl || '/synthetic/reference.png';
+  const srcUrl = sourceImage?.previewUrl || '/synthetic/synthetic_target.png';
 
   return (
     <section id="view-results" className="view-section active">
@@ -48,7 +51,7 @@ export const ResultsView: React.FC = () => {
           </span>
         ) : (
           <span>
-            Run a registration first to populate live comparison. Demo placeholders are shown below.
+            Displaying benchmark synthetic registered image pair preview below. Run registration for live overlay.
           </span>
         )}
       </div>
@@ -91,42 +94,27 @@ export const ResultsView: React.FC = () => {
                   <span className="absolute top-2.5 left-2.5 z-10 badge bg-[rgba(4,9,16,0.85)]">
                     REFERENCE (LRO NAC)
                   </span>
-                  {refUrl ? (
-                    <img
-                      src={refUrl}
-                      alt="Reference"
-                      className="w-full h-full object-cover opacity-90"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center font-mono text-[11px] text-slate-500">
-                      REFERENCE RASTER PREVIEW
-                    </div>
-                  )}
+                  <img
+                    src={refUrl}
+                    alt="Reference"
+                    className="w-full h-full object-cover opacity-90"
+                  />
                 </div>
 
                 <div className="relative bg-black rounded-xl border border-[rgba(146,196,255,0.16)] overflow-hidden">
                   <span className="absolute top-2.5 left-2.5 z-10 badge bg-[rgba(4,9,16,0.85)]">
                     REGISTERED SOURCE
                   </span>
-                  {srcUrl ? (
-                    <img
-                      src={srcUrl}
-                      alt="Registered"
-                      className="w-full h-full object-cover opacity-90 transition-all"
-                      style={{ clipPath: `inset(0 0 0 ${wipeVal}%)` }}
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center font-mono text-[11px] text-brand-300"
-                      style={{ clipPath: `inset(0 0 0 ${wipeVal}%)` }}
-                    >
-                      REGISTERED RASTER PREVIEW
-                    </div>
-                  )}
+                  <img
+                    src={srcUrl}
+                    alt="Registered"
+                    className="w-full h-full object-cover opacity-90 transition-all"
+                    style={{ clipPath: `inset(0 0 0 ${wipeVal}%)` }}
+                  />
                 </div>
               </div>
               <div className="mt-4 flex items-center gap-4">
-                <label className="mini-label shrink-0">Curtain</label>
+                <label className="mini-label shrink-0">Curtain Position ({wipeVal}%)</label>
                 <input
                   type="range"
                   min="0"
@@ -142,9 +130,18 @@ export const ResultsView: React.FC = () => {
           {/* CHECKERBOARD TAB */}
           {activeTab === 'checker' && (
             <div className="result-pane">
-              <div className="h-80 rounded-xl border border-[rgba(146,196,255,0.16)] grid grid-cols-8 grid-rows-8 overflow-hidden">
-                {checkerCells.map((cls, idx) => (
-                  <div key={idx} className={cls} />
+              <div className="h-80 rounded-xl border border-[rgba(146,196,255,0.16)] grid grid-cols-8 grid-rows-8 overflow-hidden relative">
+                {checkerCells.map((isRef, idx) => (
+                  <div key={idx} className="relative overflow-hidden border-[0.5px] border-slate-900/40">
+                    <img
+                      src={isRef ? refUrl : srcUrl}
+                      alt="Checker cell"
+                      className="w-full h-full object-cover opacity-90 scale-125"
+                    />
+                    <span className="absolute bottom-0.5 right-0.5 font-mono text-[7px] bg-slate-950/70 text-slate-300 px-1 rounded">
+                      {isRef ? 'REF' : 'SRC'}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -153,27 +150,38 @@ export const ResultsView: React.FC = () => {
           {/* GCP TAB */}
           {activeTab === 'gcp' && (
             <div className="result-pane">
-              <div className="h-80 bg-[rgba(2,6,10,0.7)] border border-[rgba(146,196,255,0.16)] rounded-xl relative overflow-hidden">
+              <div className="h-80 bg-[rgba(2,6,10,0.85)] border border-[rgba(146,196,255,0.16)] rounded-xl relative overflow-hidden">
+                <img
+                  src={refUrl}
+                  alt="Reference background"
+                  className="w-full h-full object-cover opacity-35"
+                />
                 <div className="absolute inset-0">
                   {gcpPoints.map((pt, idx) => (
                     <React.Fragment key={idx}>
                       <span
-                        className="absolute w-2 h-2 rounded-full gcp-dot"
+                        className="absolute w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_10px_rgba(62,230,160,0.9)]"
                         style={{ left: `${pt.x}%`, top: `${pt.y}%` }}
                       />
-                      <span
-                        className="absolute h-px gcp-vec"
-                        style={{
-                          left: `${pt.x}%`,
-                          top: `${pt.y + 1.4}%`,
-                          width: '18px',
-                        }}
-                      />
+                      <svg
+                        className="absolute pointer-events-none overflow-visible"
+                        style={{ left: `${pt.x}%`, top: `${pt.y}%`, width: '40px', height: '40px' }}
+                      >
+                        <line
+                          x1="0"
+                          y1="0"
+                          x2={pt.dx}
+                          y2={pt.dy}
+                          stroke="#3ee6a0"
+                          strokeWidth="1.5"
+                          strokeDasharray="2,2"
+                        />
+                      </svg>
                     </React.Fragment>
                   ))}
                 </div>
-                <div className="absolute top-3 left-3 badge">
-                  GCP POINTS + DISPLACEMENT VECTORS
+                <div className="absolute top-3 left-3 badge bg-slate-950/80">
+                  GCP SAMPLING (28 CONTROL POINTS + DISPLACEMENT VECTORS)
                 </div>
               </div>
             </div>
@@ -181,19 +189,13 @@ export const ResultsView: React.FC = () => {
 
           {/* RESIDUAL TAB */}
           {activeTab === 'residual' && (
-            <div className="result-pane">
-              <div className="h-80 rounded-xl border border-[rgba(146,196,255,0.16)] overflow-hidden relative">
-                <div
-                  className="w-full h-full"
-                  style={{
-                    background:
-                      'radial-gradient(40% 55% at 22% 68%,rgba(59,130,246,.5),transparent 70%),radial-gradient(34% 46% at 48% 30%,rgba(16,185,129,.42),transparent 70%),radial-gradient(30% 42% at 76% 62%,rgba(239,68,68,.4),transparent 70%),linear-gradient(140deg,#050d14,#0a1520)',
-                  }}
-                />
-                <span className="absolute top-3 left-3 badge">
-                  RESIDUAL FIELD / RMSE {results.rmse} px
-                </span>
-              </div>
+            <div className="result-pane h-80">
+              <HeatmapCanvas
+                rmse={results.rmse || 0.68}
+                opacity={settings.heatmapOpacity || 75}
+                refUrl={refUrl}
+                srcUrl={srcUrl}
+              />
             </div>
           )}
         </div>

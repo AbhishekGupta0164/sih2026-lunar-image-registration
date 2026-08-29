@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { seleneApi } from '../services/api';
 
-interface AppContextType {
+export interface AppContextType {
   currentView: WorkbenchView;
   isAppMode: boolean;
   sidebarCollapsed: boolean;
@@ -75,7 +75,7 @@ const defaultSettings: SettingsConfig = {
   autoSave: true,
 };
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const defaultReferenceImage: ImageMetadata = {
   name: 'reference.png (LRO NAC Grid)',
