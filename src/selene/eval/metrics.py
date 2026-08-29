@@ -102,3 +102,26 @@ def compute_metrics(
         grid_coverage_fraction=round(cov_val, 4),
     )
 
+
+def check_quality_gates(metrics: MetricsResult, subpixel_target: float = 1.0) -> dict[str, bool]:
+    """Validate whether registration metrics meet PS target standards.
+
+    Args:
+        metrics: Computed MetricsResult instance.
+        subpixel_target: Target RMSE in pixels (default 1.0 px).
+
+    Returns:
+        Dict of boolean pass/fail status flags for each quality gate requirement.
+    """
+    rmse_pass = metrics.rmse_px < subpixel_target and metrics.n_inliers >= 4
+    inlier_pass = metrics.n_inliers >= 4 and metrics.inlier_ratio >= 0.10
+    coverage_pass = metrics.grid_coverage_fraction >= 0.25
+
+    return {
+        "subpixel_target_met": rmse_pass,
+        "inlier_target_met": inlier_pass,
+        "coverage_target_met": coverage_pass,
+        "overall_pass": rmse_pass and inlier_pass,
+    }
+
+
