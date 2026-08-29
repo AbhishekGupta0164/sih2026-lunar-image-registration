@@ -78,10 +78,13 @@ export const RegisterView: React.FC = () => {
               className="w-full p-2.5"
             >
               <option value="auto">Auto — Gate Routing</option>
+              <option value="loftr">LoFTR Dense Deep Matcher</option>
+              <option value="xfeat">XFeat Lightweight Matcher</option>
               <option value="lightglue">LightGlue</option>
               <option value="crater_graph">Crater Graph</option>
               <option value="phase_corr">Phase Correlation</option>
               <option value="mutual_info">Mutual Information</option>
+              <option value="sift">SIFT Baseline</option>
             </select>
           </div>
           <div>

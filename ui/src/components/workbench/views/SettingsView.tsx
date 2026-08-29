@@ -52,8 +52,11 @@ export const SettingsView: React.FC = () => {
                 <option value="Automatic gate routing">
                   Automatic gate routing
                 </option>
+                <option value="LoFTR Dense Deep Matcher">LoFTR Dense Deep Matcher</option>
+                <option value="XFeat Lightweight Matcher">XFeat Lightweight Matcher</option>
                 <option value="LightGlue">LightGlue</option>
                 <option value="Crater Graph">Crater Graph</option>
+                <option value="Census Transform SIFT">Census Transform SIFT</option>
               </select>
             </label>
           </div>
