@@ -33,7 +33,7 @@ class PipelineConfig(BaseModel):
 
     # ── Matcher selection ──────────────────────────────────────────────────────
     matcher: Literal[
-        "auto", "sift", "lightglue", "phase_corr", "mutual_info", "crater_graph"
+        "auto", "sift", "loftr", "lightglue", "phase_corr", "mutual_info", "crater_graph"
     ] = "auto"
 
     # ── Warp model ─────────────────────────────────────────────────────────────
