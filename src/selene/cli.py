@@ -22,6 +22,7 @@ from selene.ingest.pair import Pair
 from selene.ingest.geotiff_reader import read_geotiff
 from selene.ingest.pds_reader import read_pds3, read_pds4
 from selene.geometry.pyramid import resample_to_gsd, upscale_coordinates, match_coarse_to_fine_pyramid
+from selene.geometry.mapproject_tier2 import crop_reference_to_pair
 from selene.illum.shadow_mask import detect_shadows
 from selene.matchers.gate import route_and_match
 from selene.robust.magsac import find_homography_magsac
@@ -80,6 +81,10 @@ def run_pipeline(
     pair = Pair.from_paths(ref=ref_path, mov=src_path)
     img_src, crs_src, trans_src = load_image_any(src_path)
     img_ref, crs_ref, trans_ref = load_image_any(ref_path)
+
+    # Footprint geometry pre-cropping if footprint metadata available
+    if pair.mov_meta.footprint_wkt:
+        img_ref = crop_reference_to_pair(img_ref, trans_ref, pair.mov_meta.footprint_wkt)
 
     log.info(f"Stage 1 Ingest: src_shape={img_src.shape}, ref_shape={img_ref.shape}, Δaz={pair.delta_sun_az:.1f}°, gsd_ratio={pair.gsd_ratio:.2f}")
 
