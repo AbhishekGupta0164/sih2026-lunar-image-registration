@@ -52,11 +52,12 @@ export const Sidebar: React.FC = () => {
         <button
           id="sidebar-toggle"
           onClick={toggleSidebar}
-          className="absolute top-2.5 right-2 p-1.5 text-slate-500 hover:text-brand-400 rounded z-20 transition-colors"
+          className="absolute top-3.5 right-3 p-1.5 text-slate-500 hover:text-cyan-400 rounded z-20 transition-colors cursor-pointer"
           title="Toggle sidebar"
         >
           <PanelLeftClose className="w-4 h-4" />
         </button>
+
         <a
           href="#home"
           onClick={(e) => {
@@ -66,20 +67,23 @@ export const Sidebar: React.FC = () => {
           className="p-5 flex items-center gap-3 border-b border-[rgba(146,196,255,0.13)] logo-container group"
           title="Back to home"
         >
-          <div className="logo-mark">
-            <Moon className="w-4 h-4 text-brand-400" />
+          <div className="logo-mark flex items-center justify-center">
+            <Moon className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="logo-text whitespace-nowrap">
-            <h1 className="text-[15px] font-semibold tracking-[0.08em] text-white leading-tight">
+            <h1 className="text-[15px] font-bold font-display tracking-[0.1em] text-white leading-tight">
               SELENE-MATCH
             </h1>
-            <p className="font-mono text-[8px] tracking-[0.22em] text-slate-500 mt-0.5">
+            <p className="font-mono text-[8px] tracking-[0.24em] text-slate-400 mt-0.5 uppercase">
               MISSION CONTROL
             </p>
           </div>
         </a>
-        <nav id="main-nav" className="p-3 overflow-y-auto">
-          <div className="nav-section-label">Workspace</div>
+
+        <nav id="main-nav" className="p-3 overflow-y-auto space-y-1">
+          <div className="font-mono text-[9px] font-bold tracking-[0.22em] text-slate-500 px-3 pt-3 pb-2 uppercase">
+            WORKSPACE
+          </div>
           {workspaceNav.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.key;
@@ -91,15 +95,19 @@ export const Sidebar: React.FC = () => {
                   e.preventDefault();
                   navigateTo(item.key);
                 }}
-                className={`nav-item ${isActive ? 'nav-active' : ''}`}
+                className={`nav-item font-display font-medium text-[13px] ${
+                  isActive ? 'nav-active text-white' : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="nav-text">{item.label}</span>
+                <Icon className="w-4 h-4 shrink-0 text-cyan-400/80" />
+                <span className="nav-text tracking-wide">{item.label}</span>
               </a>
             );
           })}
 
-          <div className="nav-section-label">System</div>
+          <div className="font-mono text-[9px] font-bold tracking-[0.22em] text-slate-500 px-3 pt-4 pb-2 uppercase">
+            SYSTEM
+          </div>
           {systemNav.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.key;
@@ -111,37 +119,41 @@ export const Sidebar: React.FC = () => {
                   e.preventDefault();
                   navigateTo(item.key);
                 }}
-                className={`nav-item ${isActive ? 'nav-active' : ''}`}
+                className={`nav-item font-display font-medium text-[13px] ${
+                  isActive ? 'nav-active text-white' : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="nav-text">{item.label}</span>
+                <Icon className="w-4 h-4 shrink-0 text-cyan-400/80" />
+                <span className="nav-text tracking-wide">{item.label}</span>
               </a>
             );
           })}
         </nav>
       </div>
+
+      {/* MISSION CARD FOOTER */}
       <div className="mt-auto">
-        <div className="p-4 mx-3 mb-3 rounded-xl project-info-panel">
-          <h3 className="font-mono text-[8.5px] font-medium text-slate-500 mb-3 uppercase tracking-[0.2em]">
-            Mission Card
+        <div className="p-4 mx-3 mb-3 rounded-xl project-info-panel bg-slate-950/40 border border-[rgba(146,196,255,0.12)] backdrop-blur-md">
+          <h3 className="font-mono text-[9px] font-bold text-slate-400 mb-3 uppercase tracking-[0.22em]">
+            MISSION CARD
           </h3>
-          <div className="space-y-2 text-[11px]">
+          <div className="space-y-2.5 font-mono text-[11px]">
             <div className="flex justify-between">
-              <span className="text-slate-600">PS ID</span>
-              <span className="font-mono text-slate-200">26166</span>
+              <span className="text-slate-400">PS ID</span>
+              <span className="font-bold text-white">26166</span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-slate-600">Organisation</span>
-              <span className="text-slate-200">ISRO / Dept. of Space</span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-slate-400">Organisation</span>
+              <span className="font-bold text-white">ISRO / Dept. of Space</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">Team Size</span>
-              <span className="text-slate-200">5 Members</span>
+              <span className="text-slate-400">Team Size</span>
+              <span className="text-white">5 Members</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-600">Mode</span>
-              <span className="flex items-center gap-1.5 text-success font-mono text-[9.5px] tracking-wider">
-                <span className="led" />
+            <div className="flex justify-between items-center pt-1 border-t border-[rgba(146,196,255,0.08)]">
+              <span className="text-slate-400">Mode</span>
+              <span className="flex items-center gap-1.5 text-emerald-400 font-mono text-[10px] font-bold tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(62,230,160,0.8)] inline-block" />
                 DEMO READY
               </span>
             </div>
@@ -151,3 +163,4 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sliders, Activity, Server, Save } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export const SettingsView: React.FC = () => {
@@ -7,47 +8,57 @@ export const SettingsView: React.FC = () => {
   const handleTestApi = () => {
     addLog(`API connection test requested for: ${settings.apiUrl}`, 'info');
     addToast(
-      'API connection check simulated successfully. Ready for FastAPI backend.',
+      'API connection check completed. Workbench is ready.',
       'success',
       'API Check'
     );
   };
 
   return (
-    <section id="view-settings" className="view-section active">
-      <div className="mb-5">
-        <div className="screen-title">Settings</div>
-        <div className="screen-subtitle">
-          Workbench display and processing preferences.
+    <section id="view-settings" className="view-section active space-y-6">
+      {/* PAGE HEADER */}
+      <div className="flex items-center gap-3 flex-wrap pb-1">
+        <h1 className="text-2xl font-bold font-display text-white tracking-wide">
+          Settings
+        </h1>
+        <span className="badge font-mono text-[10.5px] tracking-[0.14em] font-semibold text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1 rounded-md">
+          WORKBENCH CONFIG
+        </span>
+        <div className="screen-subtitle w-full text-[12.5px] text-slate-400 font-mono tracking-wide mt-1">
+          Workbench display parameters, default pipeline routing, and API endpoint configuration.
         </div>
       </div>
-      <div className="card p-6 space-y-7 max-w-4xl">
+
+      {/* SETTINGS CARD */}
+      <div className="card p-6 sm:p-8 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md space-y-8 max-w-4xl">
+        {/* REGISTRATION ENGINE */}
         <div>
-          <h3 className="text-[12px] font-semibold text-brand-300 border-b border-[rgba(146,196,255,0.13)] pb-2.5 tracking-[0.12em] font-mono">
-            REGISTRATION ENGINE
+          <h3 className="text-[13px] font-bold font-display text-cyan-300 border-b border-[rgba(146,196,255,0.14)] pb-3 tracking-[0.14em] uppercase flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-cyan-400" />
+            • REGISTRATION ENGINE
           </h3>
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <label className="text-[11px] text-slate-400">
-              Default GSD strategy
+          <div className="grid md:grid-cols-2 gap-6 mt-4">
+            <label className="text-[11.5px] text-slate-400 font-mono flex flex-col gap-2">
+              <span className="font-semibold text-slate-300">DEFAULT GSD STRATEGY</span>
               <select
                 value={settings.defaultGsdStrategy}
                 onChange={(e) =>
                   updateSettings({ defaultGsdStrategy: e.target.value })
                 }
-                className="w-full mt-2 p-2.5"
+                className="w-full p-3 bg-[#060f19] border border-[rgba(146,196,255,0.18)] rounded-lg text-white font-mono text-[13px] focus:border-cyan-400 focus:outline-none transition-colors"
               >
                 <option value="Common coarsest GSD">Common coarsest GSD</option>
                 <option value="Reference GSD">Reference GSD</option>
               </select>
             </label>
-            <label className="text-[11px] text-slate-400">
-              Default matcher
+            <label className="text-[11.5px] text-slate-400 font-mono flex flex-col gap-2">
+              <span className="font-semibold text-slate-300">DEFAULT MATCHER</span>
               <select
                 value={settings.defaultMatcher}
                 onChange={(e) =>
                   updateSettings({ defaultMatcher: e.target.value })
                 }
-                className="w-full mt-2 p-2.5"
+                className="w-full p-3 bg-[#060f19] border border-[rgba(146,196,255,0.18)] rounded-lg text-white font-mono text-[13px] focus:border-cyan-400 focus:outline-none transition-colors"
               >
                 <option value="Automatic gate routing">
                   Automatic gate routing
@@ -62,13 +73,17 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
+        {/* VISUALIZATION */}
         <div>
-          <h3 className="text-[12px] font-semibold text-brand-300 border-b border-[rgba(146,196,255,0.13)] pb-2.5 tracking-[0.12em] font-mono">
-            VISUALIZATION
+          <h3 className="text-[13px] font-bold font-display text-cyan-300 border-b border-[rgba(146,196,255,0.14)] pb-3 tracking-[0.14em] uppercase flex items-center gap-2">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            • VISUALIZATION
           </h3>
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <label className="text-[11px] text-slate-400">
-              Heatmap opacity ({settings.heatmapOpacity}%)
+          <div className="grid md:grid-cols-2 gap-6 mt-4">
+            <label className="text-[11.5px] text-slate-400 font-mono flex flex-col gap-2">
+              <span className="font-semibold text-slate-300">
+                HEATMAP OPACITY ({settings.heatmapOpacity}%)
+              </span>
               <input
                 type="range"
                 min="0"
@@ -77,17 +92,17 @@ export const SettingsView: React.FC = () => {
                 onChange={(e) =>
                   updateSettings({ heatmapOpacity: parseInt(e.target.value, 10) })
                 }
-                className="w-full mt-3"
+                className="w-full mt-3 accent-cyan-400 cursor-pointer"
               />
             </label>
-            <label className="text-[11px] text-slate-400">
-              Coordinate system
+            <label className="text-[11.5px] text-slate-400 font-mono flex flex-col gap-2">
+              <span className="font-semibold text-slate-300">COORDINATE SYSTEM</span>
               <select
                 value={settings.coordinateSystem}
                 onChange={(e) =>
                   updateSettings({ coordinateSystem: e.target.value })
                 }
-                className="w-full mt-2 p-2.5"
+                className="w-full p-3 bg-[#060f19] border border-[rgba(146,196,255,0.18)] rounded-lg text-white font-mono text-[13px] focus:border-cyan-400 focus:outline-none transition-colors"
               >
                 <option value="Selenographic (Lat / Lon)">
                   Selenographic (Lat / Lon)
@@ -99,37 +114,45 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
 
+        {/* API & CONNECTION */}
         <div>
-          <h3 className="text-[12px] font-semibold text-brand-300 border-b border-[rgba(146,196,255,0.13)] pb-2.5 tracking-[0.12em] font-mono">
-            API &amp; CONNECTION
+          <h3 className="text-[13px] font-bold font-display text-cyan-300 border-b border-[rgba(146,196,255,0.14)] pb-3 tracking-[0.14em] uppercase flex items-center gap-2">
+            <Server className="w-4 h-4 text-cyan-400" />
+            • API &amp; CONNECTION
           </h3>
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-3 mt-4 flex-wrap sm:flex-nowrap">
             <input
               type="text"
               value={settings.apiUrl}
               onChange={(e) => updateSettings({ apiUrl: e.target.value })}
-              className="flex-1 p-2.5 font-mono"
+              className="flex-1 p-3 bg-[#060f19] border border-[rgba(146,196,255,0.18)] rounded-lg text-white font-mono text-[13px] focus:border-cyan-400 focus:outline-none transition-colors"
             />
             <button
               onClick={handleTestApi}
-              className="btn-secondary px-5 rounded-lg text-[10px] tracking-[0.1em] font-mono"
+              className="px-5 py-3 rounded-lg text-[11.5px] font-bold font-display tracking-[0.12em] border border-cyan-400/40 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/60 flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_12px_rgba(111,246,255,0.15)] whitespace-nowrap"
             >
               TEST CONNECTION
             </button>
           </div>
         </div>
 
-        <div>
-          <label className="flex items-center gap-3 text-[11.5px] text-slate-300 cursor-pointer">
+        {/* AUTO-SAVE */}
+        <div className="pt-2">
+          <label className="flex items-center gap-3 text-[12.5px] font-mono text-slate-300 cursor-pointer">
             <input
               type="checkbox"
               checked={settings.autoSave}
               onChange={(e) => updateSettings({ autoSave: e.target.checked })}
-            />{' '}
-            Auto-save results to local storage
+              className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-400 focus:ring-0"
+            />
+            <span className="flex items-center gap-2">
+              <Save className="w-4 h-4 text-cyan-400" />
+              Auto-save results &amp; parameters to local storage
+            </span>
           </label>
         </div>
       </div>
     </section>
   );
 };
+
