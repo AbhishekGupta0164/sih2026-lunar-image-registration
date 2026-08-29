@@ -47,7 +47,7 @@ def _product_url(job_id: str, filename: str) -> str:
     return f"/products/{job_id}/{filename}"
 
 
-def _job_log(job_id: str, level: str, message: str) -> None:
+def job_log_append(job_id: str, level: str, message: str) -> None:
     """Append a structured log line to the job's log buffer and notify SSE clients."""
     entry = {
         "level": level,
@@ -61,13 +61,13 @@ def _job_log(job_id: str, level: str, message: str) -> None:
         ev.set()
 
 
-def _run_job_bg(job_id: str, src_path: str, ref_path: str, config_dict: dict | None) -> None:
+def run_job_bg(job_id: str, src_path: str, ref_path: str, config_dict: dict | None) -> None:
     """Background worker: runs the full pipeline and updates JOBS_DB."""
     try:
         cfg = PipelineConfig(**(config_dict or {}))
         job_dir = Path("products") / job_id
 
-        # Stage progress hook fed into loguru sink (captured via _job_log)
+        # Stage progress hook fed into loguru sink (captured via job_log_append)
         stages = [
             (0.05, "Stage 0: Initializing pipeline"),
             (0.15, "Stage 1: Ingesting metadata"),
@@ -84,7 +84,7 @@ def _run_job_bg(job_id: str, src_path: str, ref_path: str, config_dict: dict | N
         for prog, label in stages:
             JOBS_DB[job_id]["stage"] = label
             JOBS_DB[job_id]["progress"] = prog
-            _job_log(job_id, "INFO", label)
+            job_log_append(job_id, "INFO", label)
 
         res = run_pipeline(src_path, ref_path, job_dir, cfg, job_id=job_id)
 
@@ -101,14 +101,14 @@ def _run_job_bg(job_id: str, src_path: str, ref_path: str, config_dict: dict | N
             quiver_url=_product_url(job_id, "plot_quiver.png"),
             coverage_url=_product_url(job_id, "plot_coverage.png"),
         )
-        _job_log(job_id, "SUCCESS", f"Pipeline complete. RMSE={res['metrics'].get('rmse_px','?')} px")
+        job_log_append(job_id, "SUCCESS", f"Pipeline complete. RMSE={res['metrics'].get('rmse_px','?')} px")
 
     except Exception as exc:
         JOBS_DB[job_id].update(done=True, status="failed", error=str(exc))
-        _job_log(job_id, "ERROR", f"Pipeline failed: {exc}")
+        job_log_append(job_id, "ERROR", f"Pipeline failed: {exc}")
 
 
-def _init_job(job_id: str) -> dict:
+def init_job(job_id: str) -> dict:
     return {
         "job_id": job_id,
         "stage": "Stage 0: Queued",
@@ -135,12 +135,12 @@ def _init_job(job_id: str) -> dict:
 def create_job(req: JobRequest, background_tasks: BackgroundTasks):
     """Submit a registration job using server-side file paths."""
     job_id = f"job_{uuid.uuid4().hex[:8]}"
-    JOBS_DB[job_id] = _init_job(job_id)
+    JOBS_DB[job_id] = init_job(job_id)
 
     src = req.src_path or "data_generation/output/synthetic_target.png"
     ref = req.ref_path or "data_generation/output/reference.png"
 
-    background_tasks.add_task(_run_job_bg, job_id, src, ref, req.config)
+    background_tasks.add_task(run_job_bg, job_id, src, ref, req.config)
     return JobStatus(**{k: v for k, v in JOBS_DB[job_id].items() if k != "logs"})
 
 
@@ -243,5 +243,5 @@ def cancel_job(job_id: str):
     if job_id in JOBS_DB:
         JOBS_DB[job_id]["done"] = True
         JOBS_DB[job_id]["status"] = "cancelled"
-        _job_log(job_id, "WARNING", "Job cancelled by user.")
+        job_log_append(job_id, "WARNING", "Job cancelled by user.")
         del JOBS_DB[job_id]

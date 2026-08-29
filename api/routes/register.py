@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 
 from selene.cli import run_pipeline
 from selene.config import PipelineConfig
-from api.routes.jobs import JOBS_DB, _init_job, _run_job_bg, _job_log
+from api.routes.jobs import JOBS_DB, init_job, run_job_bg, job_log_append
 
 router = APIRouter()
 
@@ -118,11 +118,11 @@ async def register_async(
         cfg_kwargs = json.loads(config_json)
 
     # Register in the shared job store before launching background task
-    JOBS_DB[job_id] = _init_job(job_id)
-    _job_log(job_id, "INFO", f"Job {job_id} queued — ref={ref_image.filename}, mov={mov_image.filename}")
+    JOBS_DB[job_id] = init_job(job_id)
+    job_log_append(job_id, "INFO", f"Job {job_id} queued — ref={ref_image.filename}, mov={mov_image.filename}")
 
     background_tasks.add_task(
-        _run_job_bg, job_id, str(mov_save), str(ref_save), cfg_kwargs or None
+        run_job_bg, job_id, str(mov_save), str(ref_save), cfg_kwargs or None
     )
 
     return JSONResponse(
