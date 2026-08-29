@@ -419,7 +419,9 @@
 .sl-stats {
   position: relative;
   z-index: 10;
-  margin: 20px 7vw 40px;
+  margin: 16px auto 32px;
+  max-width: 900px;
+  width: calc(100% - 40px);
   border: 1px solid var(--sl-line);
   border-radius: 6px;
   display: grid;
@@ -428,7 +430,7 @@
   backdrop-filter: blur(12px);
 }
 .sl-stat {
-  padding: 32px 18px;
+  padding: 16px 12px;
   text-align: center;
   border-right: 1px solid var(--sl-line);
 }
@@ -437,18 +439,19 @@
 }
 .sl-stat strong {
   display: block;
-  font-size: clamp(32px, 5vw, 58px);
-  letter-spacing: -0.06em;
+  font-size: clamp(22px, 3.2vw, 36px);
+  letter-spacing: -0.05em;
   line-height: 1;
-  text-shadow: 0 0 20px currentColor;
+  text-shadow: 0 0 14px currentColor;
 }
 .sl-stat small {
   display: block;
-  margin-top: 10px;
+  margin-top: 6px;
   color: var(--sl-muted);
-  font: 9px "Courier New", monospace;
-  letter-spacing: 0.14em;
+  font: 8.5px "Courier New", monospace;
+  letter-spacing: 0.12em;
 }
+
 
 .sl-section-title {
   font-size: clamp(38px, 5.5vw, 70px);
@@ -638,10 +641,12 @@
   border: 1px solid var(--sl-line);
   border-radius: 6px;
   overflow: hidden;
+  max-width: 900px;
+  margin: 0 auto;
   background: rgba(5, 12, 23, 0.75);
 }
 .sl-metric {
-  padding: 36px 24px;
+  padding: 20px 16px;
   text-align: center;
   border-right: 1px solid var(--sl-line);
 }
@@ -650,23 +655,24 @@
 }
 .sl-metric strong {
   display: block;
-  font-size: clamp(30px, 4vw, 48px);
+  font-size: clamp(20px, 3vw, 34px);
   letter-spacing: -0.04em;
-  text-shadow: 0 0 18px currentColor;
+  text-shadow: 0 0 14px currentColor;
 }
 .sl-metric small {
   display: block;
-  margin-top: 12px;
+  margin-top: 8px;
   color: var(--sl-muted);
-  font: 9px "Courier New", monospace;
-  letter-spacing: 0.14em;
+  font: 8.5px "Courier New", monospace;
+  letter-spacing: 0.12em;
 }
 .sl-metric span {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: rgba(120, 170, 200, 0.55);
-  font-size: 11px;
+  font-size: 10px;
 }
+
 
 .sl-team {
   display: grid;
