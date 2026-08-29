@@ -9,6 +9,7 @@ from selene.config import PipelineConfig
 from selene.ingest.pair import Pair
 from .sift_baseline import match_sift
 from .lightglue_matcher import match_lightglue
+from .loftr_matcher import match_loftr
 from .xfeat_matcher import match_xfeat
 from .phase_correlation import match_phase_correlation
 from .mutual_information import match_mutual_information
@@ -76,6 +77,13 @@ def route_and_match(
         if len(pts_s) >= 4:
             return pts_s, pts_r, scores, "phase_congruency_sift"
         return match_sift(img_src, img_ref) + ("sift_fallback",)
+
+    elif strategy == "loftr":
+        pts_s, pts_r, scores = match_loftr(img_src, img_ref)
+        if len(pts_s) >= 4:
+            return pts_s, pts_r, scores, "loftr"
+        pts_s, pts_r, scores = match_sift(img_src, img_ref)
+        return pts_s, pts_r, scores, "sift_fallback"
 
     elif strategy == "xfeat":
         pts_s, pts_r, scores = match_xfeat(img_src, img_ref)
