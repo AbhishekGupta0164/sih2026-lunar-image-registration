@@ -64,6 +64,7 @@ def run_pipeline(
     out_dir: str | Path,
     config: PipelineConfig | None = None,
     job_id: str = "job_default",
+    progress_callback: Callable[[float, str], None] | None = None,
 ) -> dict:
     """Execute end-to-end SELENE-MATCH registration pipeline (Stages 0 - 8)."""
     if config is None:
@@ -74,10 +75,19 @@ def run_pipeline(
     setup_logging(job_id=job_id, log_dir=out_path)
     log = get_logger("pipeline")
 
-    log.info(f"Starting SELENE-MATCH pipeline: job={job_id}")
+    def _notify(prog: float, msg: str):
+        log.info(msg)
+        if progress_callback:
+            try:
+                progress_callback(prog, msg)
+            except Exception:
+                pass
+
+    _notify(0.05, f"Starting SELENE-MATCH pipeline: job={job_id}")
     log.info(f"Source: {src_path} | Reference: {ref_path}")
 
     # ── Stage 1: Ingest & Geometry ────────────────────────────────────────────
+    _notify(0.12, "Stage 1: Ingesting metadata & reading rasters")
     pair = Pair.from_paths(ref=ref_path, mov=src_path)
     img_src, crs_src, trans_src = load_image_any(src_path)
     img_ref, crs_ref, trans_ref = load_image_any(ref_path)
@@ -89,18 +99,20 @@ def run_pipeline(
     log.info(f"Stage 1 Ingest: src_shape={img_src.shape}, ref_shape={img_ref.shape}, Δaz={pair.delta_sun_az:.1f}°, gsd_ratio={pair.gsd_ratio:.2f}")
 
     # ── Stage 2: GSD Pyramid Scale Equalization ──────────────────────────────
+    _notify(0.25, "Stage 2: Building GSD pyramid & resampling")
     common_gsd_m = max(pair.ref_meta.gsd_m, pair.mov_meta.gsd_m)
     img_src_work = resample_to_gsd(img_src, pair.mov_meta.gsd_m, common_gsd_m)
     img_ref_work = resample_to_gsd(img_ref, pair.ref_meta.gsd_m, common_gsd_m)
     log.info(f"GSD Pyramid: resampled to common GSD={common_gsd_m:.2f}m | src_work={img_src_work.shape}, ref_work={img_ref_work.shape}")
 
     # ── Stage 2b: Illumination Shadow Masking ───────────────────────────────
+    _notify(0.35, "Stage 3: Illumination shadow masking")
     shadow_mask_src = detect_shadows(img_src_work)
     shadow_mask_ref = detect_shadows(img_ref_work)
     log.info(f"Shadow Mask: computed exclusion zones (src_shadow_pixels={np.count_nonzero(shadow_mask_src)})")
 
     # ── Stage 3/4: Matching Ensemble & Gate (Multi-Scale Pyramid) ───────────────
-    log.info("Stage 3/4: Routing through matcher gate via GSD pyramid...")
+    _notify(0.50, "Stage 4: Feature matching & correspondence generation")
     pts_src_w, pts_ref_w, scores, matcher_name = match_coarse_to_fine_pyramid(
         img_src=img_src,
         img_ref=img_ref,
@@ -118,7 +130,7 @@ def run_pipeline(
     pts_ref_nat = upscale_coordinates(pts_ref_w, from_gsd_m=common_gsd_m, to_gsd_m=pair.ref_meta.gsd_m)
 
     # ── Stage 5: Robust Fit & Shadow-Aware Uniform GCP Sampling ─────────────
-    log.info("Stage 5: Robust fitting via MAGSAC++...")
+    _notify(0.65, "Stage 5: MAGSAC++ robust fit & uniform GCP sampling")
     H_fit, inlier_mask = find_homography_magsac(pts_src_nat, pts_ref_nat, threshold_px=config.magsac_threshold_m)
     log.info(f"MAGSAC++ retained {np.sum(inlier_mask)} inliers / {len(pts_src_nat)} total")
 
@@ -139,7 +151,7 @@ def run_pipeline(
     log.info(f"Uniform sampler selected {len(pts_src_gcp)} well-distributed GCPs")
 
     # ── Stage 7: Sub-Pixel Refinement ─────────────────────────────────────────
-    log.info("Stage 7: Sub-pixel refinement via Inverse-Compositional LK...")
+    _notify(0.78, "Stage 7: Sub-pixel IC-LK refinement")
     pts_src_refined, valid_lk = refine_subpixel_lk(
         img_ref=img_ref,
         img_mov=img_src,
@@ -154,7 +166,7 @@ def run_pipeline(
     log.info(f"Sub-pixel refinement validated {len(pts_src_final)} GCPs")
 
     # ── Stage 6: Warping & Co-Registration ────────────────────────────────────
-    log.info(f"Stage 6: Warping moving image using [{config.warp_model}]...")
+    _notify(0.88, "Stage 6: Warping image & exporting GeoTIFF")
     ref_shape = img_ref.shape[:2]
     if config.warp_model == "tps" and len(pts_src_final) >= config.min_gcps_for_tps:
         warped = warp_tps(img_src, pts_src_final, pts_ref_final, output_shape=ref_shape)
@@ -188,7 +200,7 @@ def run_pipeline(
             f.write(f"{sx:.3f},{sy:.3f},{rx:.3f},{ry:.3f}\n")
 
     # ── Stage 8: Evaluation & Deliverables ────────────────────────────────────
-    log.info("Stage 8: Generating metrics, plots, and deliverable report...")
+    _notify(0.96, "Stage 8: Generating metrics, plots & PDF report")
     metrics = compute_metrics(
         pts_src=pts_src_final,
         pts_dst=pts_ref_final,

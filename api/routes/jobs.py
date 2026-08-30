@@ -67,26 +67,14 @@ def run_job_bg(job_id: str, src_path: str, ref_path: str, config_dict: dict | No
         cfg = PipelineConfig(**(config_dict or {}))
         job_dir = Path("products") / job_id
 
-        # Stage progress hook fed into loguru sink (captured via job_log_append)
-        stages = [
-            (0.05, "Stage 0: Initializing pipeline"),
-            (0.15, "Stage 1: Ingesting metadata"),
-            (0.25, "Stage 2: Building GSD pyramid"),
-            (0.35, "Stage 3: Illumination / shadow mask"),
-            (0.45, "Stage 4: GATE routing"),
-            (0.55, "Stage 5: Generating correspondences"),
-            (0.65, "Stage 6: MAGSAC++ robust fit"),
-            (0.75, "Stage 7: Sub-pixel IC-LK refinement"),
-            (0.85, "Stage 7b: Uniform GCP sampling"),
-            (0.92, "Stage 8: Warp, export & evaluation"),
-        ]
+        def on_progress(prog: float, label: str):
+            if job_id in JOBS_DB:
+                JOBS_DB[job_id]["stage"] = label
+                JOBS_DB[job_id]["progress"] = prog
+                job_log_append(job_id, "INFO", label)
 
-        for prog, label in stages:
-            JOBS_DB[job_id]["stage"] = label
-            JOBS_DB[job_id]["progress"] = prog
-            job_log_append(job_id, "INFO", label)
-
-        res = run_pipeline(src_path, ref_path, job_dir, cfg, job_id=job_id)
+        on_progress(0.05, "Stage 0: Initializing pipeline")
+        res = run_pipeline(src_path, ref_path, job_dir, cfg, job_id=job_id, progress_callback=on_progress)
 
         JOBS_DB[job_id].update(
             done=True,
