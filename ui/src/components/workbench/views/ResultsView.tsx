@@ -179,41 +179,58 @@ export const ResultsView: React.FC = () => {
 
         <div className="p-5">
 
-          {/* ── WIPE TAB ── */}
+          {/* ── WIPE / CURTAIN TAB ── */}
           {activeTab === 'wipe' && (
-            <div className="result-pane">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 h-80">
-                <div className="relative bg-black rounded-xl border border-[rgba(146,196,255,0.16)] overflow-hidden">
-                  <span className="absolute top-2.5 left-2.5 z-10 badge bg-[rgba(4,9,16,0.85)]">
-                    REFERENCE (FIXED)
-                  </span>
-                  <img src={refUrl} alt="Reference" className="w-full h-full object-cover opacity-90" />
-                </div>
+            <div className="result-pane font-mono">
+              <div className="relative h-[420px] rounded-xl border border-[rgba(146,196,255,0.22)] overflow-hidden bg-slate-950 select-none shadow-2xl">
+                {/* Base Layer: Reference (Fixed) */}
+                <img
+                  src={refUrl}
+                  alt="Reference Layer"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <span className="absolute top-3 left-3 z-20 px-3 py-1 rounded bg-[#040910]/85 border border-cyan-500/40 text-[10.5px] font-bold text-cyan-300 backdrop-blur-md shadow-lg">
+                  REFERENCE (FIXED LRO NAC)
+                </span>
 
-                <div className="relative bg-black rounded-xl border border-[rgba(146,196,255,0.16)] overflow-hidden">
-                  <span className="absolute top-2.5 left-2.5 z-10 badge bg-[rgba(4,9,16,0.85)]">
-                    {registeredUrl ? 'REGISTERED OUTPUT' : isComplete ? 'SOURCE (PRE-REGISTERED)' : 'SOURCE / MOVING'}
-                  </span>
-                  {!registeredUrl && isComplete && (
-                    <span className="absolute top-2.5 right-2.5 z-10 badge text-warning text-[9px]">
-                      DEMO — no live GeoTIFF
-                    </span>
-                  )}
-                  <img
-                    src={wipeRightUrl}
-                    alt="Registered"
-                    className="w-full h-full object-cover opacity-90 transition-all"
-                    style={{ clipPath: `inset(0 0 0 ${wipeVal}%)` }}
-                  />
+                {/* Overlay Layer: Registered / Source (Moving) */}
+                <img
+                  src={wipeRightUrl}
+                  alt="Source Layer"
+                  className="absolute inset-0 w-full h-full object-cover z-10 transition-none"
+                  style={{ clipPath: `inset(0 0 0 ${wipeVal}%)` }}
+                />
+                <span className="absolute top-3 right-3 z-20 px-3 py-1 rounded bg-[#040910]/85 border border-emerald-500/40 text-[10.5px] font-bold text-emerald-300 backdrop-blur-md shadow-lg">
+                  {registeredUrl ? 'REGISTERED OUTPUT (TPS WARPED)' : 'SOURCE (OHRC TARGET)'}
+                </span>
+
+                {/* Vertical Curtain Divider Laser Line & Handle */}
+                <div
+                  className="absolute top-0 bottom-0 z-30 w-0.5 bg-[#6ff6ff] shadow-[0_0_12px_#6ff6ff] pointer-events-none"
+                  style={{ left: `${wipeVal}%` }}
+                >
+                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-cyan-950 border-2 border-cyan-400 text-cyan-200 flex items-center justify-center text-[12px] font-bold shadow-[0_0_15px_rgba(111,246,255,0.8)]">
+                    ⇹
+                  </div>
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-4">
-                <label className="mini-label shrink-0">Curtain Position ({wipeVal}%)</label>
+
+              {/* Curtain Control Bar */}
+              <div className="mt-4 p-3 rounded-lg bg-[#040910] border border-slate-800 flex items-center gap-4 text-[11px]">
+                <span className="text-slate-400 font-semibold shrink-0">
+                  CURTAIN POSITION: <span className="text-cyan-300 font-bold">{wipeVal}%</span>
+                </span>
                 <input
-                  type="range" min="0" max="100" value={wipeVal}
-                  onChange={e => setWipeVal(parseInt(e.target.value, 10))}
-                  className="flex-1 mt-1"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={wipeVal}
+                  onChange={(e) => setWipeVal(parseInt(e.target.value, 10))}
+                  className="flex-1 accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
                 />
+                <span className="text-slate-500 text-[10px] shrink-0">
+                  Slide to inspect sub-pixel alignment along crater rims
+                </span>
               </div>
             </div>
           )}
