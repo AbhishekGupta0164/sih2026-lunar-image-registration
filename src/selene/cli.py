@@ -9,6 +9,7 @@ Wires Stage 0 -> Stage 8 in order.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import shutil
 import zipfile
@@ -201,13 +202,54 @@ def run_pipeline(
 
     # ── Stage 8: Evaluation & Deliverables ────────────────────────────────────
     _notify(0.96, "Stage 8: Generating metrics, plots & PDF report")
+
+    # Check for Ground Truth transformation if available
+    H_gt = None
+    gt_candidate = Path(src_path).parent / "ground_truth.json"
+    if not gt_candidate.exists():
+        gt_candidate = Path(ref_path).parent / "ground_truth.json"
+    if gt_candidate.exists():
+        try:
+            with open(gt_candidate) as f:
+                gt_data = json.load(f)
+            if "homography_matrix_3x3" in gt_data:
+                H_gt = np.array(gt_data["homography_matrix_3x3"], dtype=np.float64)
+        except Exception:
+            pass
+
+    # Provenance metadata tracking
+    git_commit = "unknown"
+    try:
+        import subprocess
+        git_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], timeout=2.0).decode().strip()
+    except Exception:
+        pass
+
+    deep_available = False
+    try:
+        import torch, kornia, lightglue
+        deep_available = True
+    except Exception:
+        pass
+
+    provenance = {
+        "git_commit": git_commit,
+        "data_source": "synthetic_ground_truth" if H_gt is not None else "lunar_pds_geotiff",
+        "deep_matcher_available": deep_available,
+        "matcher_routed": matcher_name,
+        "matcher_actually_ran": matcher_name,
+        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
     metrics = compute_metrics(
         pts_src=pts_src_final,
         pts_dst=pts_ref_final,
         gsd_m=pair.mov_meta.gsd_m,
         H_fit=H_fit,
+        H_gt=H_gt,
         image_shape=ref_shape,
         shadow_mask=shadow_mask_ref,
+        provenance=provenance,
     )
 
     metrics_json = out_path / "metrics.json"
