@@ -183,17 +183,21 @@ export class SeleneApiService {
 
       const status = await this.pollJob(jobId, onStep, signal);
       const m = status.metrics ?? {};
+      const rawRatio = Number(m.inlier_ratio ?? 0);
+      const inlierRatioPct = rawRatio <= 1.0 && rawRatio > 0 ? rawRatio * 100 : rawRatio;
+      const rawCov = Number(m.grid_coverage_fraction ?? m.coverage_fraction ?? m.coverage ?? 0);
+      const covPct = rawCov <= 1.0 && rawCov > 0 ? rawCov * 100 : rawCov;
 
       const results: RegistrationResults = {
         rmse:     Number(m.rmse_px   ?? m.rmse   ?? 0),
         rmseVal:  Number(m.rmse_val_px ?? m.rmse_val ?? m.rmse_px ?? 0),
-        qualityGatePass: m.rmse_px ? Number(m.rmse_px) < 1.0 : true,
-        raw:      Number(m.raw_matches ?? 0),
-        inliers:  Number(m.inlier_count ?? 0),
-        ratio:    Number(m.inlier_ratio ?? 0) * 100,
-        ce90:     Number(m.ce90_px  ?? 0),
-        nni:      Number(m.nni      ?? 0),
-        coverage: Number(m.coverage_fraction ?? 0) * 100,
+        qualityGatePass: m.rmse_px !== undefined ? Number(m.rmse_px) < 1.0 : true,
+        raw:      Number(m.n_raw ?? m.raw_matches ?? m.raw ?? 0),
+        inliers:  Number(m.n_inliers ?? m.inlier_count ?? m.inliers ?? 0),
+        ratio:    Number(inlierRatioPct.toFixed(1)),
+        ce90:     Number(m.ce90_px  ?? m.ce90 ?? 0),
+        nni:      Number(m.nni_index ?? m.nni ?? 0),
+        coverage: Number(covPct.toFixed(1)),
         time:     String(m.runtime_s ?? '—'),
         method:   `${this.getMatcherLabel(resolvedMatcher)} + IC-LK ECC Sub-Pixel`,
         matcherUsed: resolvedMatcher,
@@ -326,8 +330,8 @@ export class SeleneApiService {
 
   /** Build a full download URL for a product file. */
   public productUrl(path: string): string {
-    // path is like "/products/job_abc/registered.tif"
-    return `http://localhost:8000${path}`;
+    const origin = this.baseUrl.replace(/\/api\/v1\/?$/, '');
+    return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
   }
 }
 
