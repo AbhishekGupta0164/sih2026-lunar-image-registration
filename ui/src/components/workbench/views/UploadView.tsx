@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, Sliders, Zap, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, CheckCircle, RotateCcw, Zap, ExternalLink, Sliders, Image as ImageIcon } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { seleneApi } from '../../../services/api';
 
@@ -43,12 +43,11 @@ export const UploadView: React.FC = () => {
     referenceImage, sourceImage,
     sourceSensor,
     setReferenceFile, setSourceFile, setSourceSensor,
-    clearUploads, navigateTo,
+    clearUploads, loadSyntheticPair, navigateTo,
     addLog, addToast,
     setReferenceImage: _setRef, setSourceImage: _setSrc,
   } = useApp() as any;
 
-  // Use these safe setters if context exposes them, else fall back to setReferenceFile/setSourceFile
   const setRefMeta  = typeof _setRef  === 'function' ? _setRef  : null;
   const setSrcMeta  = typeof _setSrc  === 'function' ? _setSrc  : null;
 
@@ -72,7 +71,7 @@ export const UploadView: React.FC = () => {
   const [imgW, setImgW]       = useState(1024);
   const [imgH, setImgH]       = useState(1024);
 
-  // Generated preview URLs (bust cache with timestamp)
+  // Generated preview URLs
   const [genRefUrl, setGenRefUrl] = useState('');
   const [genSrcUrl, setGenSrcUrl] = useState('');
 
@@ -82,7 +81,7 @@ export const UploadView: React.FC = () => {
     setGenDone(false);
   };
 
-  // ── Drop handlers ──────────────────────────────────────────────────────────
+  // Drop handlers
   const handleRefDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files?.[0]) setReferenceFile(e.dataTransfer.files[0]);
@@ -94,7 +93,7 @@ export const UploadView: React.FC = () => {
 
   const pairReady = referenceImage !== null && sourceImage !== null;
 
-  // ── Run generation pipeline ────────────────────────────────────────────────
+  // Run generation pipeline
   const handleGenerate = async () => {
     if (generating) return;
     setGenerating(true);
@@ -113,7 +112,6 @@ export const UploadView: React.FC = () => {
         targetHeight: imgH,
       });
 
-      // Cache-bust the URLs so the browser reloads the new images
       const ts = `?t=${Date.now()}`;
       const refUrl = `${data.reference_image_url}${ts}`;
       const srcUrl = `${data.source_image_url}${ts}`;
@@ -121,7 +119,6 @@ export const UploadView: React.FC = () => {
       setGenSrcUrl(srcUrl);
       setGenDone(true);
 
-      // Push generated pair into AppContext as pre-loaded images
       const refMeta = {
         name: data.reference_name || 'reference.png',
         size: 0, type: 'image/png',
@@ -138,13 +135,10 @@ export const UploadView: React.FC = () => {
         previewUrl: srcUrl,
       };
 
-      // If context exposes setReferenceImage / setSourceImage use those,
-      // otherwise synthesise File objects from the blob URLs
       if (setRefMeta && setSrcMeta) {
         setRefMeta(refMeta);
         setSrcMeta(srcMeta);
       } else {
-        // Fetch the generated images and load them as File objects
         const [refBlob, srcBlob] = await Promise.all([
           fetch(refUrl).then(r => r.blob()),
           fetch(srcUrl).then(r => r.blob()),
@@ -169,22 +163,27 @@ export const UploadView: React.FC = () => {
   };
 
   return (
-    <section id="view-upload" className="view-section active">
-      <div className="mb-5 flex items-center gap-3 flex-wrap">
-        <div className="screen-title">Image Upload</div>
-        <span className="badge text-brand-400">T1 PAIRDESK · INGEST &amp; CONFIGURE</span>
-        <div className="screen-subtitle w-full">
-          Upload the Reference and Source images — or generate a synthetic pair from your own base image.
+    <section id="view-upload" className="view-section active space-y-6">
+      {/* PAGE HEADER */}
+      <div className="flex items-center gap-3 flex-wrap pb-1">
+        <h1 className="text-2xl font-bold font-display text-white tracking-wide">
+          Image Upload
+        </h1>
+        <span className="badge font-mono text-[10.5px] tracking-[0.14em] font-semibold text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1 rounded-md">
+          T1 PAIRDESK
+        </span>
+        <div className="screen-subtitle w-full text-[12.5px] text-slate-400 font-mono tracking-wide mt-1">
+          Upload the Reference and Source images — or generate a synthetic pair from custom parameters.
         </div>
       </div>
 
-      {/* ── Mode toggle ── */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      {/* Mode toggle */}
+      <div className="flex gap-3 mb-2 flex-wrap">
         <button
-          className={`px-4 py-2 rounded-lg text-[11px] font-mono tracking-wider border transition-all duration-200 ${
+          className={`px-4 py-2.5 rounded-lg text-[11px] font-mono font-semibold tracking-wider border transition-all duration-200 cursor-pointer ${
             genMode === 'none'
-              ? 'bg-brand-500/15 border-brand-400/50 text-brand-300'
-              : 'bg-transparent border-[rgba(146,196,255,0.15)] text-slate-400 hover:border-brand-400/30'
+              ? 'bg-cyan-950/50 border-cyan-400/50 text-cyan-300 shadow-[0_0_12px_rgba(111,246,255,0.15)]'
+              : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:border-slate-600'
           }`}
           onClick={() => setGenMode('none')}
         >
@@ -192,10 +191,10 @@ export const UploadView: React.FC = () => {
           UPLOAD EXISTING PAIR
         </button>
         <button
-          className={`px-4 py-2 rounded-lg text-[11px] font-mono tracking-wider border transition-all duration-200 ${
+          className={`px-4 py-2.5 rounded-lg text-[11px] font-mono font-semibold tracking-wider border transition-all duration-200 cursor-pointer ${
             genMode === 'config'
-              ? 'bg-[rgba(111,246,255,0.1)] border-brand-300/50 text-brand-200'
-              : 'bg-transparent border-[rgba(146,196,255,0.15)] text-slate-400 hover:border-brand-400/30'
+              ? 'bg-cyan-950/50 border-cyan-400/50 text-cyan-300 shadow-[0_0_12px_rgba(111,246,255,0.15)]'
+              : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:border-slate-600'
           }`}
           onClick={() => setGenMode('config')}
         >
@@ -204,237 +203,320 @@ export const UploadView: React.FC = () => {
         </button>
       </div>
 
-      {/* ════════════════════════════════════════════
-          MODE A: Upload existing pair
-      ════════════════════════════════════════════ */}
+      {/* MODE A: Upload existing pair */}
       {genMode === 'none' && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {/* Reference */}
-          <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-semibold text-success tracking-wide flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(62,230,160,0.8)]" />
-                REFERENCE / FIXED
-              </h3>
-              <span className="badge">LRO NAC / WAC</span>
-            </div>
-            <input
-              ref={refInputRef} type="file" accept="image/*,.tif,.tiff,.lbl,.xml,.json"
-              className="hidden"
-              onChange={e => { if (e.target.files?.[0]) setReferenceFile(e.target.files[0]); }}
-            />
-            <div
-              className="dropzone min-h-56 flex flex-col items-center justify-center cursor-pointer text-center px-4"
-              onClick={() => refInputRef.current?.click()}
-              onDragOver={e => e.preventDefault()} onDrop={handleRefDrop}
-            >
-              <div className="dz-icon mb-3.5"><UploadCloud className="w-5 h-5 text-brand-400" /></div>
-              <div className="text-[13px] text-slate-200">
-                {referenceImage ? referenceImage.name : 'Drop reference image here'}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* REFERENCE / FIXED CARD */}
+          <div className="card p-6 sm:p-7 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[13.5px] font-semibold font-display text-emerald-400 tracking-wide flex items-center gap-2.5 uppercase">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(62,230,160,0.8)] inline-block" />
+                  • REFERENCE / FIXED
+                </h3>
+                <span className="badge font-mono text-[10px] tracking-[0.12em] text-slate-300 bg-slate-900/80 border border-slate-700/60 px-3 py-1 rounded-md">
+                  LRO NAC / WAC
+                </span>
               </div>
-              <div className="font-mono text-[9px] text-slate-500 mt-1.5 tracking-[0.14em]">
-                GEOTIFF / PDS · CLICK TO BROWSE
+
+              <input
+                ref={refInputRef}
+                type="file"
+                accept="image/*,.tif,.tiff,.lbl,.xml,.json"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setReferenceFile(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <div
+                className="dropzone min-h-60 rounded-xl border-2 border-dashed border-cyan-500/30 bg-cyan-950/20 hover:border-cyan-400/70 hover:bg-cyan-950/30 transition-all flex flex-col items-center justify-center cursor-pointer text-center p-6 group"
+                onClick={() => refInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleRefDrop}
+              >
+                <div className="dz-icon mb-4 p-3.5 rounded-xl bg-blue-500/10 border border-blue-400/30 text-cyan-400 group-hover:scale-110 transition-transform">
+                  <UploadCloud className="w-7 h-7" />
+                </div>
+                <div className="text-[14px] font-bold font-display text-white">
+                  {referenceImage ? referenceImage.name : 'Drop reference image here'}
+                </div>
+                <div className="font-mono text-[10px] text-slate-400 mt-2 tracking-[0.14em]">
+                  GEOTIFF / PDS • CLICK TO BROWSE
+                </div>
+                {referenceImage?.previewUrl && (
+                  <img
+                    src={referenceImage.previewUrl}
+                    alt="Reference preview"
+                    className="mt-4 max-h-36 rounded-lg border border-[rgba(146,196,255,0.25)] object-contain shadow-lg"
+                  />
+                )}
               </div>
-              {referenceImage?.previewUrl && (
-                <img src={referenceImage.previewUrl} alt="ref"
-                  className="mt-3 max-h-32 rounded-lg border border-[rgba(146,196,255,0.2)] object-contain" />
-              )}
             </div>
-            <div className="grid grid-cols-3 gap-2.5 mt-4">
-              <div className="panel p-2.5"><div className="mini-label">Sensor</div><div className="text-slate-200 mt-1.5 text-[11px] font-mono">LRO NAC</div></div>
-              <div className="panel p-2.5"><div className="mini-label">GSD</div><div className="text-slate-200 mt-1.5 text-[11px] font-mono">0.50 m/px</div></div>
-              <div className="panel p-2.5"><div className="mini-label">Sun</div><div className="text-slate-200 mt-1.5 text-[11px] font-mono">142.1° / 34.5°</div></div>
+
+            <div className="grid grid-cols-3 gap-3 mt-5">
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="flex items-center gap-1 font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase">
+                  <span className="text-cyan-400">•</span> SENSOR
+                </div>
+                <div className="text-white mt-1.5 text-[12px] font-mono font-semibold">
+                  LRO NAC
+                </div>
+              </div>
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="flex items-center gap-1 font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase">
+                  <span className="text-cyan-400">•</span> GSD
+                </div>
+                <div className="text-white mt-1.5 text-[12px] font-mono font-semibold">
+                  0.50 m/px
+                </div>
+              </div>
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="flex items-center gap-1 font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase">
+                  <span className="text-cyan-400">•</span> SUN ANGLE
+                </div>
+                <div className="text-white mt-1.5 text-[12px] font-mono font-semibold">
+                  142.1° / 34.5°
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Source */}
-          <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-semibold text-brand-300 tracking-wide flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 shadow-[0_0_8px_rgba(111,246,255,0.8)]" />
-                SOURCE / MOVING
-              </h3>
-              <span className="badge">OHRC / TMC-2 / IIRS</span>
-            </div>
-            <input
-              ref={srcInputRef} type="file" accept="image/*,.tif,.tiff,.lbl,.xml,.json"
-              className="hidden"
-              onChange={e => { if (e.target.files?.[0]) setSourceFile(e.target.files[0]); }}
-            />
-            <div
-              className="dropzone min-h-56 flex flex-col items-center justify-center cursor-pointer text-center px-4"
-              onClick={() => srcInputRef.current?.click()}
-              onDragOver={e => e.preventDefault()} onDrop={handleSrcDrop}
-            >
-              <div className="dz-icon mb-3.5"><UploadCloud className="w-5 h-5 text-brand-400" /></div>
-              <div className="text-[13px] text-slate-200">
-                {sourceImage ? sourceImage.name : 'Drop source image here'}
+          {/* SOURCE / MOVING CARD */}
+          <div className="card p-6 sm:p-7 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[13.5px] font-semibold font-display text-cyan-300 tracking-wide flex items-center gap-2.5 uppercase">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(111,246,255,0.8)] inline-block" />
+                  • SOURCE / MOVING
+                </h3>
+                <span className="badge font-mono text-[10px] tracking-[0.12em] text-slate-300 bg-slate-900/80 border border-slate-700/60 px-3 py-1 rounded-md">
+                  OHRC / TMC-2 / IIRS
+                </span>
               </div>
-              <div className="font-mono text-[9px] text-slate-500 mt-1.5 tracking-[0.14em]">
-                GEOTIFF / PDS · CLICK TO BROWSE
+
+              <input
+                ref={srcInputRef}
+                type="file"
+                accept="image/*,.tif,.tiff,.lbl,.xml,.json"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSourceFile(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <div
+                className="dropzone min-h-60 rounded-xl border-2 border-dashed border-cyan-500/30 bg-cyan-950/20 hover:border-cyan-400/70 hover:bg-cyan-950/30 transition-all flex flex-col items-center justify-center cursor-pointer text-center p-6 group"
+                onClick={() => srcInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleSrcDrop}
+              >
+                <div className="dz-icon mb-4 p-3.5 rounded-xl bg-blue-500/10 border border-blue-400/30 text-cyan-400 group-hover:scale-110 transition-transform">
+                  <UploadCloud className="w-7 h-7" />
+                </div>
+                <div className="text-[14px] font-bold font-display text-white">
+                  {sourceImage ? sourceImage.name : 'Drop source image here'}
+                </div>
+                <div className="font-mono text-[10px] text-slate-400 mt-2 tracking-[0.14em]">
+                  GEOTIFF / PDS • CLICK TO BROWSE
+                </div>
+                {sourceImage?.previewUrl && (
+                  <img
+                    src={sourceImage.previewUrl}
+                    alt="Source preview"
+                    className="mt-4 max-h-36 rounded-lg border border-[rgba(146,196,255,0.25)] object-contain shadow-lg"
+                  />
+                )}
               </div>
-              {sourceImage?.previewUrl && (
-                <img src={sourceImage.previewUrl} alt="src"
-                  className="mt-3 max-h-32 rounded-lg border border-[rgba(146,196,255,0.2)] object-contain" />
-              )}
             </div>
-            <div className="grid grid-cols-3 gap-2.5 mt-4">
-              <div className="panel p-2.5">
-                <div className="mini-label">Sensor</div>
-                <select value={sourceSensor} onChange={e => setSourceSensor(e.target.value)}
-                  className="w-full mt-1.5 bg-transparent border-0 p-0 text-slate-200 text-[11px] font-mono">
-                  <option>Chandrayaan-2 OHRC</option>
-                  <option>Chandrayaan-2 TMC-2</option>
-                  <option>Chandrayaan-2 IIRS (Multi-spectral)</option>
+
+            <div className="grid grid-cols-3 gap-3 mt-5">
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="flex items-center gap-1 font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase">
+                  <span className="text-cyan-400">•</span> SENSOR
+                </div>
+                <select
+                  value={sourceSensor}
+                  onChange={(e) => setSourceSensor(e.target.value)}
+                  className="w-full mt-1 bg-transparent border-0 p-0 text-white text-[11.5px] font-mono font-semibold focus:outline-none cursor-pointer"
+                >
+                  <option value="Chandrayaan-2 OHRC" className="bg-slate-900 text-white">OHRC</option>
+                  <option value="Chandrayaan-2 TMC-2" className="bg-slate-900 text-white">TMC-2</option>
+                  <option value="Chandrayaan-2 IIRS" className="bg-slate-900 text-white">IIRS (Multi-spectral)</option>
                 </select>
               </div>
-              <div className="panel p-2.5"><div className="mini-label">GSD</div><div className="text-slate-200 mt-1.5 text-[11px] font-mono">{sourceImage?.gsd || '0.25 m/px'}</div></div>
-              <div className="panel p-2.5"><div className="mini-label">Sun</div><div className="text-slate-200 mt-1.5 text-[11px] font-mono">284.3° / 32.1°</div></div>
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="flex items-center gap-1 font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase">
+                  <span className="text-cyan-400">•</span> {sourceSensor.includes('IIRS') ? 'IIRS BAND' : 'GSD'}
+                </div>
+                <div className="text-white mt-1.5 text-[12px] font-mono font-semibold">
+                  {sourceSensor.includes('IIRS') ? (
+                    <span className="text-cyan-300">Band #12</span>
+                  ) : (
+                    sourceImage?.gsd || '0.25 m/px'
+                  )}
+                </div>
+              </div>
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="flex items-center gap-1 font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase">
+                  <span className="text-cyan-400">•</span> SUN ANGLE
+                </div>
+                <div className="text-white mt-1.5 text-[12px] font-mono font-semibold">
+                  284.3° / 32.1°
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ════════════════════════════════════════════
-          MODE B: Generate synthetic pair
-      ════════════════════════════════════════════ */}
+      {/* MODE B: Generate synthetic pair */}
       {genMode === 'config' && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Left: base image upload */}
-          <div className="card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <ImageIcon className="w-4 h-4 text-brand-300" />
-              <h3 className="text-[13px] font-semibold text-white tracking-wide">BASE IMAGE INPUT</h3>
-              <span className="badge text-slate-400 ml-auto">OPTIONAL — fallback to procedural</span>
-            </div>
-
-            <input
-              ref={baseImgRef} type="file" accept="image/*,.tif,.tiff"
-              className="hidden"
-              onChange={e => { if (e.target.files?.[0]) handleBaseFilePick(e.target.files[0]); }}
-            />
-
-            <div
-              className="dropzone min-h-52 flex flex-col items-center justify-center cursor-pointer text-center px-4"
-              onClick={() => baseImgRef.current?.click()}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleBaseFilePick(e.dataTransfer.files[0]); }}
-            >
-              <div className="dz-icon mb-3.5">
-                <UploadCloud className={`w-5 h-5 ${baseFile ? 'text-success' : 'text-brand-400'}`} />
+          <div className="card p-6 sm:p-7 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon className="w-4 h-4 text-cyan-300" />
+                <h3 className="text-[13.5px] font-bold font-display text-white tracking-wide uppercase">BASE IMAGE INPUT</h3>
+                <span className="badge font-mono text-[9.5px] text-slate-400 ml-auto border border-slate-700/60 px-2.5 py-0.5 rounded">
+                  OPTIONAL — fallback to procedural
+                </span>
               </div>
-              <div className="text-[13px] text-slate-200">
-                {baseFile ? baseFile.name : 'Drop your lunar image here'}
-              </div>
-              <div className="font-mono text-[9px] text-slate-500 mt-1.5 tracking-[0.14em]">
-                PNG / TIFF / JPG · CLICK TO BROWSE
-              </div>
-              {basePreview && (
-                <img src={basePreview} alt="base"
-                  className="mt-3 max-h-36 rounded-lg border border-[rgba(62,230,160,0.25)] object-contain" />
-              )}
-              {!baseFile && (
-                <p className="text-[10px] text-slate-500 mt-3 max-w-xs">
-                  Leave empty to auto-generate a procedural lunar surface with craters and regolith texture.
-                </p>
-              )}
-            </div>
 
-            {baseFile && (
-              <button
-                onClick={() => { setBaseFile(null); setBasePreview(''); setGenDone(false); }}
-                className="mt-3 text-[10px] font-mono text-slate-500 hover:text-warning transition-colors"
+              <input
+                ref={baseImgRef} type="file" accept="image/*,.tif,.tiff"
+                className="hidden"
+                onChange={e => { if (e.target.files?.[0]) handleBaseFilePick(e.target.files[0]); }}
+              />
+
+              <div
+                className="dropzone min-h-56 rounded-xl border-2 border-dashed border-cyan-500/30 bg-cyan-950/20 hover:border-cyan-400/70 hover:bg-cyan-950/30 transition-all flex flex-col items-center justify-center cursor-pointer text-center p-6 group"
+                onClick={() => baseImgRef.current?.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); if (e.dataTransfer.files?.[0]) handleBaseFilePick(e.dataTransfer.files[0]); }}
               >
-                <RotateCcw className="inline w-3 h-3 mr-1" />CLEAR BASE IMAGE — USE PROCEDURAL
-              </button>
-            )}
+                <div className="dz-icon mb-3.5 p-3 rounded-xl bg-blue-500/10 border border-blue-400/30 text-cyan-400 group-hover:scale-110 transition-transform">
+                  <UploadCloud className={`w-6 h-6 ${baseFile ? 'text-emerald-400' : 'text-cyan-400'}`} />
+                </div>
+                <div className="text-[14px] font-bold font-display text-white">
+                  {baseFile ? baseFile.name : 'Drop your lunar image here'}
+                </div>
+                <div className="font-mono text-[10px] text-slate-400 mt-1.5 tracking-[0.14em]">
+                  PNG / TIFF / JPG • CLICK TO BROWSE
+                </div>
+                {basePreview && (
+                  <img src={basePreview} alt="base"
+                    className="mt-3 max-h-36 rounded-lg border border-emerald-500/30 object-contain shadow-md" />
+                )}
+                {!baseFile && (
+                  <p className="text-[11px] text-slate-400 mt-3 max-w-xs font-mono">
+                    Leave empty to auto-generate a procedural lunar surface with synthetic crater geometry.
+                  </p>
+                )}
+              </div>
+
+              {baseFile && (
+                <button
+                  onClick={() => { setBaseFile(null); setBasePreview(''); setGenDone(false); }}
+                  className="mt-3 text-[10px] font-mono text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" /> CLEAR BASE IMAGE — USE PROCEDURAL
+                </button>
+              )}
+            </div>
 
             {/* Output size */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="panel p-3">
-                <div className="mini-label mb-1.5">Output Width (px)</div>
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase mb-1">Output Width (px)</div>
                 <input type="number" min={64} max={4096} step={64} value={imgW}
                   onChange={e => setImgW(parseInt(e.target.value) || 1024)}
-                  className="w-full bg-transparent text-slate-200 font-mono text-[12px] border-0 outline-none" />
+                  className="w-full bg-transparent text-white font-mono text-[12.5px] font-semibold border-0 outline-none" />
               </div>
-              <div className="panel p-3">
-                <div className="mini-label mb-1.5">Output Height (px)</div>
+              <div className="panel p-3 rounded-lg bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+                <div className="font-mono text-[9.5px] text-slate-400 tracking-[0.12em] uppercase mb-1">Output Height (px)</div>
                 <input type="number" min={64} max={4096} step={64} value={imgH}
                   onChange={e => setImgH(parseInt(e.target.value) || 1024)}
-                  className="w-full bg-transparent text-slate-200 font-mono text-[12px] border-0 outline-none" />
+                  className="w-full bg-transparent text-white font-mono text-[12.5px] font-semibold border-0 outline-none" />
               </div>
             </div>
           </div>
 
           {/* Right: transform parameters + run button */}
-          <div className="card p-5">
-            <div className="flex items-center gap-2 mb-5">
-              <Sliders className="w-4 h-4 text-brand-300" />
-              <h3 className="text-[13px] font-semibold text-white tracking-wide">TRANSFORM PARAMETERS</h3>
-            </div>
-
-            <div className="space-y-5">
-              <SliderRow label="Rotation"          unit="°"  value={rotDeg} min={-45}  max={45}  step={0.5}  onChange={setRotDeg}  color="#6ff6ff" />
-              <SliderRow label="Scale Factor"       unit="×"  value={scale}  min={0.5}  max={1.5} step={0.01} onChange={setScale}   color="#a9dcff" />
-              <SliderRow label="Translation X"      unit=" px" value={txPx}   min={-200} max={200} step={1}    onChange={setTxPx}   color="#3ee6a0" />
-              <SliderRow label="Translation Y"      unit=" px" value={tyPx}   min={-200} max={200} step={1}    onChange={setTyPx}   color="#3ee6a0" />
-              <SliderRow label="Illumination γ"     unit=""   value={gamma}  min={0.2}  max={2.0} step={0.05} onChange={setGamma}  color="#ffb65c" />
-            </div>
-
-            {/* Parameter preview */}
-            <div className="mt-5 p-3 rounded-lg bg-[rgba(3,8,14,0.6)] border border-[rgba(146,196,255,0.1)] font-mono text-[10px] text-slate-400 space-y-1">
-              <div>rotation_deg = <span className="text-brand-300">{rotDeg}</span></div>
-              <div>scale        = <span className="text-brand-300">{scale}</span></div>
-              <div>tx           = <span className="text-success">{txPx} px</span></div>
-              <div>ty           = <span className="text-success">{tyPx} px</span></div>
-              <div>gamma        = <span className="text-warning">{gamma}</span></div>
-              <div>output_size  = <span className="text-slate-300">{imgW}×{imgH}</span></div>
-            </div>
-
-            {/* CTA */}
-            <button
-              className={`w-full mt-5 py-3 rounded-lg text-[12px] font-semibold tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${
-                generating
-                  ? 'bg-brand-500/10 border border-brand-400/30 text-brand-300 cursor-not-allowed'
-                  : 'btn-primary'
-              }`}
-              onClick={handleGenerate}
-              disabled={generating}
-            >
-              {generating ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-brand-300/40 border-t-brand-300 rounded-full animate-spin" />
-                  RUNNING GENERATION PIPELINE…
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  GENERATE SYNTHETIC PAIR
-                </>
-              )}
-            </button>
-
-            {genDone && (
-              <div className="mt-3 p-3 rounded-lg bg-[rgba(62,230,160,0.07)] border border-success/25 text-[11px] text-success font-mono flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(62,230,160,0.8)] flex-shrink-0" />
-                Pair generated and loaded. Proceed to registration.
+          <div className="card p-6 sm:p-7 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-5">
+                <Sliders className="w-4 h-4 text-cyan-300" />
+                <h3 className="text-[13.5px] font-bold font-display text-white tracking-wide uppercase">TRANSFORM PARAMETERS</h3>
               </div>
-            )}
+
+              <div className="space-y-4">
+                <SliderRow label="Rotation"          unit="°"  value={rotDeg} min={-45}  max={45}  step={0.5}  onChange={setRotDeg}  color="#6ff6ff" />
+                <SliderRow label="Scale Factor"       unit="×"  value={scale}  min={0.5}  max={1.5} step={0.01} onChange={setScale}   color="#a9dcff" />
+                <SliderRow label="Translation X"      unit=" px" value={txPx}   min={-200} max={200} step={1}    onChange={setTxPx}   color="#3ee6a0" />
+                <SliderRow label="Translation Y"      unit=" px" value={tyPx}   min={-200} max={200} step={1}    onChange={setTyPx}   color="#3ee6a0" />
+                <SliderRow label="Illumination γ"     unit=""   value={gamma}  min={0.2}  max={2.0} step={0.05} onChange={setGamma}  color="#ffb65c" />
+              </div>
+
+              {/* Parameter preview */}
+              <div className="mt-5 p-3.5 rounded-lg bg-[#07111b]/90 border border-[rgba(146,196,255,0.12)] font-mono text-[10.5px] text-slate-400 space-y-1">
+                <div>rotation_deg = <span className="text-cyan-300 font-semibold">{rotDeg}</span></div>
+                <div>scale        = <span className="text-cyan-300 font-semibold">{scale}</span></div>
+                <div>tx           = <span className="text-emerald-400 font-semibold">{txPx} px</span></div>
+                <div>ty           = <span className="text-emerald-400 font-semibold">{tyPx} px</span></div>
+                <div>gamma        = <span className="text-amber-400 font-semibold">{gamma}</span></div>
+                <div>output_size  = <span className="text-white font-semibold">{imgW}×{imgH}</span></div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                className={`w-full py-3.5 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] flex items-center justify-center gap-2.5 transition-all cursor-pointer ${
+                  generating
+                    ? 'bg-slate-900 border border-slate-700 text-slate-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:opacity-90 shadow-[0_0_18px_rgba(57,168,255,0.3)]'
+                }`}
+                onClick={handleGenerate}
+                disabled={generating}
+              >
+                {generating ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-cyan-400/40 border-t-cyan-300 rounded-full animate-spin" />
+                    RUNNING GENERATION PIPELINE…
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-cyan-300" />
+                    GENERATE SYNTHETIC PAIR
+                  </>
+                )}
+              </button>
+
+              {genDone && (
+                <div className="mt-3 p-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-400 font-mono flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  Synthetic pair generated and loaded into workspace.
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Generated previews */}
           {genDone && (
-            <div className="xl:col-span-2 grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="xl:col-span-2 grid grid-cols-1 xl:grid-cols-2 gap-6">
               {[
-                { label: 'Reference (Fixed)', url: genRefUrl,  color: 'rgba(62,230,160,0.3)' },
-                { label: 'Source / Synthetic Target (Moving)', url: genSrcUrl, color: 'rgba(111,246,255,0.3)' },
-              ].map(({ label, url, color }) => (
-                <div key={label} className="card p-4">
-                  <div className="text-[11px] font-semibold text-white mb-3 tracking-wide">{label.toUpperCase()}</div>
+                { label: 'Reference (Fixed)', url: genRefUrl,  borderColor: 'border-emerald-500/40' },
+                { label: 'Source / Synthetic Target (Moving)', url: genSrcUrl, borderColor: 'border-cyan-500/40' },
+              ].map(({ label, url, borderColor }) => (
+                <div key={label} className="card p-5 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md">
+                  <div className="text-[12px] font-bold font-display text-white mb-3 tracking-wide uppercase">{label}</div>
                   <img src={url} alt={label}
-                    className="w-full max-h-52 object-contain rounded-lg border"
-                    style={{ borderColor: color }} />
+                    className={`w-full max-h-60 object-contain rounded-lg border ${borderColor} shadow-md`} />
                 </div>
               ))}
             </div>
@@ -442,35 +524,88 @@ export const UploadView: React.FC = () => {
         </div>
       )}
 
-      {/* ── Pair Summary ── */}
-      <div className="card bracket p-5 mt-5">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* PAIR SUMMARY CARD */}
+      <div className="card bracket p-6 sm:p-7 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md">
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-2">
           <div>
-            <h3 className="text-[13px] font-semibold text-white tracking-wide">PAIR SUMMARY</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">Metadata is used by the automatic matcher gate.</p>
+            <h3 className="text-[14px] font-bold font-display text-white tracking-wide uppercase">
+              PAIR SUMMARY
+            </h3>
+            <p className="text-[12px] text-slate-400 font-mono tracking-wide mt-1">
+              Metadata is evaluated by the automatic matcher gate prior to registration execution.
+            </p>
           </div>
-          <span className={`badge ${pairReady ? 'text-success border-[rgba(62,230,160,0.4)]' : 'text-slate-400'}`}>
-            {pairReady ? 'PAIR READY FOR REGISTRATION' : 'WAITING FOR BOTH IMAGES'}
+          <span
+            className={`badge font-mono text-[10.5px] tracking-[0.14em] font-semibold px-3.5 py-1.5 rounded-full flex items-center gap-2 ${
+              pairReady
+                ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-500/30'
+                : 'text-slate-400 bg-slate-900/60 border border-slate-700/60'
+            }`}
+          >
+            {pairReady ? (
+              <>
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                PAIR READY FOR REGISTRATION
+              </>
+            ) : (
+              'WAITING FOR BOTH IMAGES'
+            )}
           </span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          <div className="panel p-3"><div className="mini-label">Scale ratio</div><div className="text-white mt-1.5 font-mono text-[11px]">320× max</div></div>
-          <div className="panel p-3"><div className="mini-label">Sun-angle</div><div className="text-warning mt-1.5 font-mono text-[11px]">142.6°</div></div>
-          <div className="panel p-3"><div className="mini-label">GSD strategy</div><div className="text-white mt-1.5 font-mono text-[11px]">Common coarse</div></div>
-          <div className="panel p-3"><div className="mini-label">Label parser</div><div className="text-white mt-1.5 font-mono text-[11px]">PDS3 / PDS4 / JSON</div></div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
+          <div className="panel p-4 rounded-xl bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 tracking-[0.12em] uppercase">
+              <span className="text-cyan-400">•</span> SCALE RATIO
+            </div>
+            <div className="text-white mt-2 font-mono text-[12.5px] font-semibold">
+              320× max
+            </div>
+          </div>
+          <div className="panel p-4 rounded-xl bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 tracking-[0.12em] uppercase">
+              <span className="text-cyan-400">•</span> SUN-ANGLE DELTA
+            </div>
+            <div className="text-amber-400 mt-2 font-mono text-[12.5px] font-semibold">
+              142.6°
+            </div>
+          </div>
+          <div className="panel p-4 rounded-xl bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 tracking-[0.12em] uppercase">
+              <span className="text-cyan-400">•</span> GSD STRATEGY
+            </div>
+            <div className="text-white mt-2 font-mono text-[12.5px] font-semibold">
+              Common coarse
+            </div>
+          </div>
+          <div className="panel p-4 rounded-xl bg-[#07111b]/80 border border-[rgba(146,196,255,0.12)]">
+            <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 tracking-[0.12em] uppercase">
+              <span className="text-cyan-400">•</span> LABEL PARSER
+            </div>
+            <div className="text-white mt-2 font-mono text-[12.5px] font-semibold">
+              PDS3 / PDS4 / JSON
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2.5 mt-4 flex-wrap">
+
+        <div className="flex gap-4 mt-7 pt-6 border-t border-[rgba(146,196,255,0.12)] flex-wrap">
           <button
-            className="btn-primary px-5 py-2.5 rounded-lg text-[11px] tracking-wider"
+            className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center gap-2.5 hover:opacity-90 transition-all cursor-pointer shadow-[0_0_18px_rgba(57,168,255,0.3)]"
             onClick={() => navigateTo('register')}
           >
-            CONTINUE TO REGISTRATION ↗
+            CONTINUE TO REGISTRATION <ExternalLink className="w-4 h-4" />
           </button>
           <button
-            className="btn-secondary px-5 py-2.5 rounded-lg text-[11px] tracking-wider"
+            className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] border border-cyan-400/40 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/60 flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(111,246,255,0.15)]"
+            onClick={loadSyntheticPair}
+          >
+            <Zap className="w-4 h-4 text-cyan-400" /> LOAD SYNTHETIC GENERATED PAIR
+          </button>
+          <button
+            className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] border border-slate-700/80 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-600 flex items-center gap-2 transition-all cursor-pointer"
             onClick={clearUploads}
           >
-            CLEAR
+            <RotateCcw className="w-4 h-4" /> CLEAR UPLOADS
           </button>
         </div>
       </div>

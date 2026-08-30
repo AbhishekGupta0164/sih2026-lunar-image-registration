@@ -1,173 +1,269 @@
 import React from 'react';
+import {
+  CheckCircle,
+  Layers,
+  Maximize2,
+  Target,
+  Clock,
+  UploadCloud,
+  Share2,
+  CheckCircle2,
+  Sun,
+  Scale,
+  Compass,
+  KeyRound,
+  Upload,
+  ExternalLink,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export const DashboardView: React.FC = () => {
   const { navigateTo, isProcessing, isComplete, results } = useApp();
 
   return (
-    <section id="view-dashboard" className="view-section active">
-      <div className="mb-6 flex items-end justify-between flex-wrap gap-3">
+    <section id="view-dashboard" className="view-section active space-y-6">
+      {/* PAGE HEADER */}
+      <div className="flex items-end justify-between flex-wrap gap-4 pb-2">
         <div>
-          <div className="screen-title">SELENE-MATCH Workbench</div>
-          <div className="screen-subtitle">
+          <h1 className="text-2xl font-bold font-display text-white tracking-wide">
+            SELENE-MATCH Workbench
+          </h1>
+          <p className="screen-subtitle text-[12.5px] text-slate-400 font-mono tracking-wide mt-1.5">
             A single workspace for multi-modal lunar image registration. Each screen owns its dedicated functionality.
-          </div>
+          </p>
         </div>
-        <span className="badge">
-          <span className="led" style={{ display: 'inline-block', marginRight: '6px' }} />
-          All Systems Nominal
+        <span className="badge font-mono text-[10.5px] tracking-[0.14em] font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-3.5 py-1.5 rounded-full flex items-center gap-2.5 shadow-[0_0_12px_rgba(62,230,160,0.15)]">
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
+          ALL SYSTEMS NOMINAL
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-5">
-        <div className="card bracket p-4">
-          <div className="mini-label">Input</div>
-          <div className="text-white font-medium mt-2.5 text-[13px]">
-            OHRC / TMC-2 / IIRS
+      {/* STAT CARDS ROW */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* INPUT CARD */}
+        <div className="card bracket p-5 sm:p-6 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex items-center justify-between transition-all hover:border-[rgba(146,196,255,0.3)] hover:shadow-[0_0_20px_rgba(111,246,255,0.06)]">
+          <div className="flex flex-col justify-between h-full">
+            <label className="flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase mb-3">
+              <span className="text-cyan-400 text-xs">•</span> INPUT
+            </label>
+            <div className="text-white font-bold font-display text-[16px] leading-snug">
+              OHRC / TMC-2 / IIRS
+            </div>
+            <p className="text-[11.5px] text-slate-400 font-mono mt-2 tracking-wide">vs LRO NAC / WAC</p>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">vs LRO NAC / WAC</p>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-blue-500/10 border border-blue-400/30 text-blue-400 shrink-0 ml-4 shadow-[0_0_15px_rgba(57,168,255,0.15)]">
+            <Layers className="w-6 h-6" />
+          </div>
         </div>
 
-        <div className="card bracket p-4">
-          <div className="mini-label">Scale Range</div>
-          <div
-            className="text-[26px] text-brand-300 font-medium mt-1 tracking-tight"
-            style={{ textShadow: '0 0 22px rgba(111,246,255,.3)' }}
-          >
-            320×
+        {/* SCALE RANGE CARD */}
+        <div className="card bracket p-5 sm:p-6 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex items-center justify-between transition-all hover:border-[rgba(146,196,255,0.3)] hover:shadow-[0_0_20px_rgba(111,246,255,0.06)]">
+          <div className="flex flex-col justify-between h-full">
+            <label className="flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase mb-2">
+              <span className="text-cyan-400 text-xs">•</span> SCALE RANGE
+            </label>
+            <div className="text-[28px] text-cyan-300 font-bold font-display my-1 tracking-tight drop-shadow-[0_0_18px_rgba(111,246,255,0.35)]">
+              320×
+            </div>
+            <p className="text-[11.5px] text-slate-400 font-mono tracking-wide">GSD disparity handled</p>
           </div>
-          <p className="text-[11px] text-slate-500">GSD disparity handled</p>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-cyan-500/10 border border-cyan-400/30 text-cyan-400 shrink-0 ml-4 shadow-[0_0_15px_rgba(111,246,255,0.15)]">
+            <Maximize2 className="w-6 h-6" />
+          </div>
         </div>
 
-        <div className="card bracket p-4">
-          <div className="mini-label">Accuracy Target</div>
-          <div
-            className="text-[26px] text-success font-medium mt-1 tracking-tight"
-            style={{ textShadow: '0 0 22px rgba(62,230,160,.3)' }}
-          >
-            &lt; 1 px
+        {/* ACCURACY TARGET CARD */}
+        <div className="card bracket p-5 sm:p-6 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex items-center justify-between transition-all hover:border-[rgba(146,196,255,0.3)] hover:shadow-[0_0_20px_rgba(111,246,255,0.06)]">
+          <div className="flex flex-col justify-between h-full">
+            <label className="flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase mb-2">
+              <span className="text-cyan-400 text-xs">•</span> ACCURACY TARGET
+            </label>
+            <div className="text-[28px] text-emerald-400 font-bold font-display my-1 tracking-tight drop-shadow-[0_0_18px_rgba(62,230,160,0.35)]">
+              &lt; 1 px
+            </div>
+            <p className="text-[11.5px] text-slate-400 font-mono tracking-wide">Sub-pixel refinement</p>
           </div>
-          <p className="text-[11px] text-slate-500">Sub-pixel refinement</p>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 shrink-0 ml-4 shadow-[0_0_15px_rgba(62,230,160,0.15)]">
+            <Target className="w-6 h-6" />
+          </div>
         </div>
 
-        <div className="card bracket p-4">
-          <div className="mini-label">Pipeline</div>
-          <div
-            id="dash-status"
-            className="text-[26px] text-slate-200 font-medium mt-1 tracking-tight"
-          >
-            {isProcessing ? 'Running' : isComplete ? 'Complete' : 'Idle'}
+        {/* PIPELINE CARD */}
+        <div className="card bracket p-5 sm:p-6 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex items-center justify-between transition-all hover:border-[rgba(146,196,255,0.3)] hover:shadow-[0_0_20px_rgba(111,246,255,0.06)]">
+          <div className="flex flex-col justify-between h-full">
+            <label className="flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase mb-2">
+              <span className="text-cyan-400 text-xs">•</span> PIPELINE
+            </label>
+            <div className="text-[28px] text-white font-bold font-display my-1 tracking-tight">
+              {isProcessing ? 'Running' : isComplete ? 'Complete' : 'Idle'}
+            </div>
+            <p className="text-[11.5px] text-slate-400 font-mono tracking-wide">
+              {isProcessing
+                ? 'Processing S0-S8...'
+                : isComplete
+                ? results.method
+                : 'Awaiting image pair'}
+            </p>
           </div>
-          <p id="dash-method" className="text-[11px] text-slate-500">
-            {isProcessing
-              ? 'Processing S0-S8...'
-              : isComplete
-              ? results.method
-              : 'Awaiting image pair'}
-          </p>
+          <div className="p-3.5 sm:p-4 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-400 shrink-0 ml-4">
+            <Clock className="w-6 h-6" />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="card p-5 lg:col-span-2">
-          <h3 className="text-[13px] font-semibold text-white mb-4 tracking-wide">
-            HOW SELENE-MATCH WORKS
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="panel p-3.5 relative overflow-hidden group hover:border-[rgba(111,246,255,0.35)] transition-colors">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="font-mono text-[10px] text-brand-400">01</div>
-              <div className="text-white text-xs mt-2 font-medium">Ingest</div>
-              <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                Read image + metadata
+      {/* MAIN CONTENT PANELS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* HOW SELENE-MATCH WORKS */}
+        <div className="card p-6 sm:p-7 lg:col-span-2 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md flex flex-col justify-between">
+          <div>
+            <h3 className="text-[14px] font-bold font-display text-white mb-6 tracking-[0.12em] uppercase">
+              HOW SELENE-MATCH WORKS
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {/* STEP 01 */}
+              <div className="p-5 rounded-xl border border-[rgba(146,196,255,0.14)] bg-[#07111c]/80 flex flex-col items-center text-center relative group hover:border-cyan-400/40 transition-all hover:shadow-[0_0_20px_rgba(111,246,255,0.08)]">
+                <span className="font-mono text-[12px] font-bold text-cyan-400 tracking-[0.14em] self-start mb-1">
+                  01
+                </span>
+                <div className="my-4 p-3 rounded-xl bg-blue-500/10 border border-blue-400/30 text-blue-400 shadow-[0_0_15px_rgba(57,168,255,0.15)]">
+                  <UploadCloud className="w-6 h-6" />
+                </div>
+                <div className="text-white text-[14px] font-bold font-display tracking-wide mt-1">
+                  Ingest
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-1.5 leading-relaxed max-w-[140px]">
+                  Read image + metadata
+                </div>
               </div>
-            </div>
-            <div className="panel p-3.5 relative overflow-hidden group hover:border-[rgba(111,246,255,0.35)] transition-colors">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="font-mono text-[10px] text-brand-400">02</div>
-              <div className="text-white text-xs mt-2 font-medium">Equalize</div>
-              <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                Common GSD pyramid
+
+              {/* STEP 02 */}
+              <div className="p-5 rounded-xl border border-[rgba(146,196,255,0.14)] bg-[#07111c]/80 flex flex-col items-center text-center relative group hover:border-cyan-400/40 transition-all hover:shadow-[0_0_20px_rgba(111,246,255,0.08)]">
+                <span className="font-mono text-[12px] font-bold text-cyan-400 tracking-[0.14em] self-start mb-1">
+                  02
+                </span>
+                <div className="my-4 p-3 rounded-xl bg-blue-500/10 border border-blue-400/30 text-blue-400 shadow-[0_0_15px_rgba(57,168,255,0.15)]">
+                  <SlidersHorizontal className="w-6 h-6" />
+                </div>
+                <div className="text-white text-[14px] font-bold font-display tracking-wide mt-1">
+                  Equalize
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-1.5 leading-relaxed max-w-[140px]">
+                  Common GSD pyramid
+                </div>
               </div>
-            </div>
-            <div className="panel p-3.5 relative overflow-hidden group hover:border-[rgba(111,246,255,0.35)] transition-colors">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="font-mono text-[10px] text-brand-400">03</div>
-              <div className="text-white text-xs mt-2 font-medium">Match</div>
-              <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                Gate selects expert
+
+              {/* STEP 03 */}
+              <div className="p-5 rounded-xl border border-[rgba(146,196,255,0.14)] bg-[#07111c]/80 flex flex-col items-center text-center relative group hover:border-cyan-400/40 transition-all hover:shadow-[0_0_20px_rgba(111,246,255,0.08)]">
+                <span className="font-mono text-[12px] font-bold text-cyan-400 tracking-[0.14em] self-start mb-1">
+                  03
+                </span>
+                <div className="my-4 p-3 rounded-xl bg-blue-500/10 border border-blue-400/30 text-blue-400 shadow-[0_0_15px_rgba(57,168,255,0.15)]">
+                  <Share2 className="w-6 h-6" />
+                </div>
+                <div className="text-white text-[14px] font-bold font-display tracking-wide mt-1">
+                  Match
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-1.5 leading-relaxed max-w-[140px]">
+                  Gate selects expert
+                </div>
               </div>
-            </div>
-            <div className="panel p-3.5 relative overflow-hidden group hover:border-[rgba(111,246,255,0.35)] transition-colors">
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="font-mono text-[10px] text-brand-400">04</div>
-              <div className="text-white text-xs mt-2 font-medium">Register</div>
-              <div className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                MAGSAC++ + IC-LK
+
+              {/* STEP 04 */}
+              <div className="p-5 rounded-xl border border-[rgba(146,196,255,0.14)] bg-[#07111c]/80 flex flex-col items-center text-center relative group hover:border-cyan-400/40 transition-all hover:shadow-[0_0_20px_rgba(62,230,160,0.08)]">
+                <span className="font-mono text-[12px] font-bold text-cyan-400 tracking-[0.14em] self-start mb-1">
+                  04
+                </span>
+                <div className="my-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 shadow-[0_0_15px_rgba(62,230,160,0.15)]">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div className="text-white text-[14px] font-bold font-display tracking-wide mt-1">
+                  Register
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-1.5 leading-relaxed max-w-[140px]">
+                  MAGSAC++ + IC-LK
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2.5 mt-5">
+
+          <div className="flex flex-wrap gap-4 mt-8 pt-6 border-t border-[rgba(146,196,255,0.12)]">
             <button
-              className="btn-primary px-5 py-2.5 rounded-lg text-[11px] tracking-wider"
+              className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center gap-2.5 hover:opacity-90 transition-all cursor-pointer shadow-[0_0_18px_rgba(57,168,255,0.3)]"
               onClick={() => navigateTo('upload')}
             >
-              START WITH UPLOAD ↗
+              START WITH UPLOAD <Upload className="w-4 h-4" />
             </button>
             <button
-              className="btn-secondary px-5 py-2.5 rounded-lg text-[11px] tracking-wider"
+              className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] border border-[rgba(146,196,255,0.25)] bg-slate-900/60 text-white flex items-center gap-2.5 hover:bg-slate-800/80 transition-all cursor-pointer"
               onClick={() => navigateTo('register')}
             >
-              OPEN REGISTRATION
+              OPEN REGISTRATION <ExternalLink className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="card p-5">
-          <h3 className="text-[13px] font-semibold text-white mb-4 tracking-wide">
+        {/* CHALLENGE -> SOLUTION */}
+        <div className="card p-6 sm:p-7 rounded-xl bg-slate-950/60 border border-[rgba(146,196,255,0.14)] backdrop-blur-md">
+          <h3 className="text-[14px] font-bold font-display text-white mb-6 tracking-[0.12em] uppercase">
             CHALLENGE → SOLUTION
           </h3>
-          <div className="space-y-3.5 text-[11px]">
-            <div className="flex gap-3">
-              <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-warning shadow-[0_0_8px_rgba(255,182,92,0.8)]" />
+          <div className="space-y-6">
+            {/* ILLUMINATION */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0 shadow-[0_0_12px_rgba(255,182,92,0.15)]">
+                <Sun className="w-5 h-5" />
+              </div>
               <div>
-                <span className="text-warning font-mono text-[9px] tracking-[0.14em]">
+                <div className="text-amber-400 font-mono text-[11px] font-bold tracking-[0.16em] uppercase">
                   ILLUMINATION
-                </span>
-                <p className="text-slate-500 mt-1 leading-relaxed">
+                </div>
+                <p className="text-slate-400 font-mono text-[11.5px] mt-1.5 leading-relaxed">
                   Phase congruency, shadow masks, relighting, crater graph.
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-warning shadow-[0_0_8px_rgba(255,182,92,0.8)]" />
+
+            {/* SCALE */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0 shadow-[0_0_12px_rgba(255,182,92,0.15)]">
+                <Scale className="w-5 h-5" />
+              </div>
               <div>
-                <span className="text-warning font-mono text-[9px] tracking-[0.14em]">
+                <div className="text-amber-400 font-mono text-[11px] font-bold tracking-[0.16em] uppercase">
                   SCALE
-                </span>
-                <p className="text-slate-500 mt-1 leading-relaxed">
+                </div>
+                <p className="text-slate-400 font-mono text-[11.5px] mt-1.5 leading-relaxed">
                   Common metres-per-pixel GSD pyramid.
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-warning shadow-[0_0_8px_rgba(255,182,92,0.8)]" />
+
+            {/* VIEWPOINT */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 shrink-0 shadow-[0_0_12px_rgba(255,182,92,0.15)]">
+                <Compass className="w-5 h-5" />
+              </div>
               <div>
-                <span className="text-warning font-mono text-[9px] tracking-[0.14em]">
+                <div className="text-amber-400 font-mono text-[11px] font-bold tracking-[0.16em] uppercase">
                   VIEWPOINT
-                </span>
-                <p className="text-slate-500 mt-1 leading-relaxed">
+                </div>
+                <p className="text-slate-400 font-mono text-[11.5px] mt-1.5 leading-relaxed">
                   Robust affine/homography + TPS/piecewise geometry.
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-warning shadow-[0_0_8px_rgba(255,182,92,0.8)]" />
+
+            {/* PRECISION */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 shrink-0 shadow-[0_0_12px_rgba(255,182,92,0.15)]">
+                <KeyRound className="w-5 h-5" />
+              </div>
               <div>
-                <span className="text-warning font-mono text-[9px] tracking-[0.14em]">
+                <div className="text-amber-400 font-mono text-[11px] font-bold tracking-[0.16em] uppercase">
                   PRECISION
-                </span>
-                <p className="text-slate-500 mt-1 leading-relaxed">
+                </div>
+                <p className="text-slate-400 font-mono text-[11.5px] mt-1.5 leading-relaxed">
                   Native-resolution IC-LK sub-pixel refinement.
                 </p>
               </div>
@@ -178,3 +274,5 @@ export const DashboardView: React.FC = () => {
     </section>
   );
 };
+
+
