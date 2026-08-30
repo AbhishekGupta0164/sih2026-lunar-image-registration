@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import jobs, samples, register
+from api.routes import jobs, samples, register, generate
 
 app = FastAPI(
     title="SELENE-MATCH API",
@@ -26,7 +26,8 @@ app.add_middleware(
 # All routes under /api/v1 to match the frontend contract
 app.include_router(jobs.router,     prefix="/api/v1/jobs",    tags=["jobs"])
 app.include_router(samples.router,  prefix="/api/v1/samples", tags=["samples"])
-app.include_router(register.router, prefix="/api/v1",         tags=["register"])
+app.include_router(register.router,  prefix="/api/v1",         tags=["register"])
+app.include_router(generate.router,  prefix="/api/v1",         tags=["generate"])
 
 # Mount products directory as static files for download/viewing
 products_path = Path("products")

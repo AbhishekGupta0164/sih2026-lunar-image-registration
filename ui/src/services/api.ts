@@ -237,6 +237,50 @@ export class SeleneApiService {
     return { results, jobId };
   }
 
+  // ── Data Generation ───────────────────────────────────────────────────────
+
+  /**
+   * POST /api/v1/generate
+   * Runs the synthetic pair pipeline on the backend with an optional base image.
+   */
+  public async generateSyntheticPair(params: {
+    baseImage?: File | null;
+    rotationDeg: number;
+    scale: number;
+    tx: number;
+    ty: number;
+    gamma: number;
+    targetWidth: number;
+    targetHeight: number;
+  }): Promise<{
+    reference_image_url: string;
+    source_image_url: string;
+    ground_truth_url: string;
+    reference_name: string;
+    source_name: string;
+    ground_truth: Record<string, unknown>;
+    params: Record<string, unknown>;
+  }> {
+    const form = new FormData();
+    if (params.baseImage) {
+      form.append('base_image', params.baseImage);
+    }
+    form.append('rotation_deg', String(params.rotationDeg));
+    form.append('scale',        String(params.scale));
+    form.append('tx',           String(params.tx));
+    form.append('ty',           String(params.ty));
+    form.append('gamma',        String(params.gamma));
+    form.append('target_width', String(params.targetWidth));
+    form.append('target_height',String(params.targetHeight));
+
+    const res = await fetch(`${this.baseUrl}/generate`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Generate failed (${res.status}): ${text}`);
+    }
+    return res.json();
+  }
+
   // ── Samples ────────────────────────────────────────────────────────────────
 
   public async listSamples(): Promise<unknown[]> {

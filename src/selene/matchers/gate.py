@@ -58,6 +58,9 @@ def route_and_match(
         (pts_src, pts_ref, scores, chosen_matcher_name)
     """
     strategy = select_matcher(pair, config)
+    # The registration pipeline is also used without a config in a few tests;
+    # retain CPU as the safe default for those callers.
+    device = config.device if config is not None else "cpu"
 
     if strategy == "crater_graph":
         # Preprocess with Phase Congruency or Relighting to overcome polarity flip
@@ -89,14 +92,14 @@ def route_and_match(
         return match_sift(img_src, img_ref) + ("sift_fallback",)
 
     elif strategy == "loftr":
-        pts_s, pts_r, scores = match_loftr(img_src, img_ref)
+        pts_s, pts_r, scores = match_loftr(img_src, img_ref, device=device)
         if len(pts_s) >= 4:
             return pts_s, pts_r, scores, "loftr"
         pts_s, pts_r, scores = match_sift(img_src, img_ref)
         return pts_s, pts_r, scores, "sift_fallback"
 
     elif strategy == "xfeat":
-        pts_s, pts_r, scores = match_xfeat(img_src, img_ref)
+        pts_s, pts_r, scores = match_xfeat(img_src, img_ref, device=device)
         if len(pts_s) >= 4:
             return pts_s, pts_r, scores, "xfeat"
         pts_s, pts_r, scores = match_sift(img_src, img_ref)
@@ -111,7 +114,7 @@ def route_and_match(
         return pts_s, pts_r, scores, "phase_corr"
 
     elif strategy == "lightglue":
-        pts_s, pts_r, scores = match_lightglue(img_src, img_ref)
+        pts_s, pts_r, scores = match_lightglue(img_src, img_ref, device=device)
         if len(pts_s) >= 4:
             return pts_s, pts_r, scores, "lightglue"
         pts_s, pts_r, scores = match_sift(img_src, img_ref)
@@ -120,4 +123,3 @@ def route_and_match(
     else:  # sift baseline
         pts_s, pts_r, scores = match_sift(img_src, img_ref)
         return pts_s, pts_r, scores, "sift"
-

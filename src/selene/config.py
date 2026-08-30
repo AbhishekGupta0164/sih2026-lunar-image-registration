@@ -35,6 +35,10 @@ class PipelineConfig(BaseModel):
     matcher: Literal[
         "auto", "sift", "loftr", "xfeat", "lightglue", "phase_corr", "mutual_info", "crater_graph"
     ] = "auto"
+    # Runtime device for learned matcher backends. Classical matchers ignore it.
+    # Kept here so callers such as benchmark.py can use the same pipeline
+    # configuration rather than patching matcher internals.
+    device: Literal["cpu", "cuda", "mps"] = "cpu"
 
     # ── Warp model ─────────────────────────────────────────────────────────────
     warp_model: Literal["tps", "piecewise_affine", "homography"] = "tps"
