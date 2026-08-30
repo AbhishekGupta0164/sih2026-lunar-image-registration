@@ -58,23 +58,36 @@ button {
 }
 
 /* scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 170, 210, 0.25) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg0);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 170, 210, 0.18);
+  background: rgba(120, 170, 210, 0.22);
   border-radius: 99px;
-  border: 2px solid var(--bg0);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 246, 255, 0.35);
+  background: rgba(111, 246, 255, 0.45);
+}
+
+#workbench-scroll-container {
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+#main-nav::-webkit-scrollbar {
+  width: 4px;
 }
 
 /* ============ BACKGROUND LAYERS ============ */

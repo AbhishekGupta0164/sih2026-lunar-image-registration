@@ -4,9 +4,16 @@ import { useApp } from '../../../context/AppContext';
 
 export const LogsView: React.FC = () => {
   const { logs, clearLogs } = useApp();
+  const logsContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   return (
-    <section id="view-logs" className="view-section active space-y-6">
+    <section id="view-logs" className="view-section active space-y-6 pb-12">
       {/* PAGE HEADER */}
       <div className="flex items-center gap-3 flex-wrap pb-1">
         <h1 className="text-2xl font-bold font-display text-white tracking-wide">
@@ -45,7 +52,10 @@ export const LogsView: React.FC = () => {
             </span>
           </div>
 
-          <div className="min-h-[460px] max-h-[600px] p-5 overflow-y-auto space-y-2 font-mono text-[11.5px] leading-relaxed">
+          <div
+            ref={logsContainerRef}
+            className="min-h-[460px] max-h-[600px] p-5 overflow-y-auto space-y-2 font-mono text-[11.5px] leading-relaxed overscroll-contain"
+          >
             {logs.length === 0 ? (
               <div className="text-slate-500 font-mono text-[11.5px]">
                 <span className="text-[#54738c] mr-2.5">[19:52:07]</span>
