@@ -295,21 +295,25 @@ button {
 
 #view-home .navcta {
   border: 1px solid rgba(111, 246, 255, 0.45);
-  background: rgba(57, 168, 255, 0.08);
-  color: #dff8ff;
-  padding: 10px 18px;
-  border-radius: 6px;
+  background: linear-gradient(90deg, #1d64ec 0%, #00b4d8 100%);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 10px;
   font-size: 11px;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  text-transform: uppercase;
   position: relative;
   overflow: hidden;
-  transition: 0.3s;
+  box-shadow: 0 0 16px rgba(29, 100, 236, 0.35);
+  transition: all 0.25s ease;
+  cursor: pointer;
 }
 
 #view-home .navcta:hover {
-  background: rgba(57, 168, 255, 0.18);
-  box-shadow: 0 0 24px rgba(111, 246, 255, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(0, 180, 216, 0.55);
+  opacity: 0.95;
 }
 
 #view-home .burger {
