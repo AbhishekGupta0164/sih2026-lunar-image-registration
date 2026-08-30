@@ -102,7 +102,11 @@ def detect_craters(
         List of Crater instances sorted by score (rim quality × radius).
     """
     if img.dtype != np.uint8:
-        img_u8 = (img * 255.0 / (img.max() + 1e-6)).clip(0, 255).astype(np.uint8)
+        i_min, i_max = float(img.min()), float(img.max())
+        if i_max > i_min:
+            img_u8 = np.clip((img - i_min) / (i_max - i_min) * 255.0, 0, 255).astype(np.uint8)
+        else:
+            img_u8 = np.zeros(img.shape[:2], dtype=np.uint8)
     else:
         img_u8 = img
 
