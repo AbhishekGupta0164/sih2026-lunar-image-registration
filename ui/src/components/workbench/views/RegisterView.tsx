@@ -143,10 +143,10 @@ export const RegisterView: React.FC = () => {
           <button
             onClick={runRegistration}
             disabled={isProcessing}
-            className="px-7 py-3 rounded-lg text-[12px] font-bold font-display flex items-center gap-3 tracking-[0.14em] bg-emerald-500/10 hover:bg-emerald-500/20 text-white border border-emerald-500/40 hover:border-emerald-400 transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_18px_rgba(62,230,160,0.2)]"
+            className="px-7 py-3.5 rounded-xl text-[12px] font-bold font-display flex items-center gap-3 tracking-[0.14em] bg-gradient-to-r from-[#1d64ec] to-[#00b4d8] text-white border border-cyan-400/40 hover:opacity-95 hover:scale-[1.02] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_rgba(29,100,236,0.35)] uppercase"
           >
-            <span className="inline-block w-2.5 h-2.5 border-l-[6px] border-l-emerald-400 border-y-[4px] border-y-transparent border-r-0" />
-            {isProcessing ? 'PROCESSING...' : 'RUN REGISTRATION'}
+            <Play className="w-4 h-4 text-white fill-white" />
+            {isProcessing ? 'PROCESSING PIPELINE...' : 'RUN REGISTRATION PIPELINE'}
           </button>
         </div>
       </div>

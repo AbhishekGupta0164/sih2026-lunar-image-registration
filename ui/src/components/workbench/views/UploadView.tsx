@@ -590,22 +590,22 @@ export const UploadView: React.FC = () => {
 
         <div className="flex gap-4 mt-7 pt-6 border-t border-[rgba(146,196,255,0.12)] flex-wrap">
           <button
-            className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center gap-2.5 hover:opacity-90 transition-all cursor-pointer shadow-[0_0_18px_rgba(57,168,255,0.3)]"
+            className="px-6 py-3.5 rounded-xl text-[12px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-[#1d64ec] to-[#00b4d8] text-white flex items-center gap-2.5 hover:opacity-95 hover:scale-[1.02] transition-all cursor-pointer shadow-[0_0_20px_rgba(29,100,236,0.35)] uppercase border border-cyan-400/40"
             onClick={() => navigateTo('register')}
           >
-            CONTINUE TO REGISTRATION <ExternalLink className="w-4 h-4" />
+            CONTINUE TO REGISTRATION <ExternalLink className="w-4 h-4 text-white" />
           </button>
           <button
-            className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] border border-cyan-400/40 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/60 flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(111,246,255,0.15)]"
+            className="px-6 py-3.5 rounded-xl text-[12px] font-bold font-display tracking-[0.14em] border border-cyan-400/40 text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 hover:text-white flex items-center gap-2.5 transition-all cursor-pointer shadow-[0_0_15px_rgba(111,246,255,0.15)] uppercase"
             onClick={loadSyntheticPair}
           >
-            <Zap className="w-4 h-4 text-cyan-400" /> LOAD SYNTHETIC GENERATED PAIR
+            LOAD SYNTHETIC GENERATED PAIR <Zap className="w-4 h-4 text-cyan-400" />
           </button>
           <button
-            className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] border border-slate-700/80 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-600 flex items-center gap-2 transition-all cursor-pointer"
+            className="px-6 py-3.5 rounded-xl text-[12px] font-bold font-display tracking-[0.14em] border border-slate-700/80 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-500 flex items-center gap-2 transition-all cursor-pointer uppercase"
             onClick={clearUploads}
           >
-            <RotateCcw className="w-4 h-4" /> CLEAR UPLOADS
+            CLEAR UPLOADS <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>

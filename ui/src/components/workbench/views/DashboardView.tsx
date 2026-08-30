@@ -189,16 +189,16 @@ export const DashboardView: React.FC = () => {
 
           <div className="flex flex-wrap gap-4 mt-8 pt-6 border-t border-[rgba(146,196,255,0.12)]">
             <button
-              className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center gap-2.5 hover:opacity-90 transition-all cursor-pointer shadow-[0_0_18px_rgba(57,168,255,0.3)]"
+              className="px-6 py-3.5 rounded-xl text-[12px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-[#1d64ec] to-[#00b4d8] text-white flex items-center gap-2.5 hover:opacity-95 hover:scale-[1.02] transition-all cursor-pointer shadow-[0_0_20px_rgba(29,100,236,0.35)] uppercase border border-cyan-400/40"
               onClick={() => navigateTo('upload')}
             >
-              START WITH UPLOAD <Upload className="w-4 h-4" />
+              START WITH UPLOAD <Upload className="w-4 h-4 text-white" />
             </button>
             <button
-              className="px-6 py-3 rounded-lg text-[12px] font-bold font-display tracking-[0.14em] border border-[rgba(146,196,255,0.25)] bg-slate-900/60 text-white flex items-center gap-2.5 hover:bg-slate-800/80 transition-all cursor-pointer"
+              className="px-6 py-3.5 rounded-xl text-[12px] font-bold font-display tracking-[0.14em] border border-cyan-400/40 bg-cyan-950/40 text-cyan-300 flex items-center gap-2.5 hover:bg-cyan-900/60 hover:text-white hover:shadow-[0_0_18px_rgba(111,246,255,0.25)] transition-all cursor-pointer uppercase"
               onClick={() => navigateTo('register')}
             >
-              OPEN REGISTRATION <ExternalLink className="w-4 h-4" />
+              OPEN REGISTRATION <ExternalLink className="w-4 h-4 text-cyan-300" />
             </button>
           </div>
         </div>
