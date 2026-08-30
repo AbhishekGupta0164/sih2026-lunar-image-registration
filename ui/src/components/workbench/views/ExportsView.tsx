@@ -416,16 +416,8 @@ Certified by SELENE-MATCH Automated Pipeline Core.
           printWin.document.close();
         }
 
-        // Also trigger fallback plain text report download
-        const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'registration_report.txt';
-        a.click();
-        URL.revokeObjectURL(url);
         addLog(`Generated and opened full PDF deliverable report with bundled calculation details & plots`, 'success');
-        addToast(`Full PDF deliverable report with calculation details and plots generated!`, 'success', 'PDF Report Ready');
+        addToast(`Full PDF deliverable report generated successfully!`, 'success', 'PDF Report Ready');
       } else if (filename.includes('checkerboard')) {
         downloadCanvasPlot('checkerboard', filename);
       } else if (filename.includes('quiver')) {
