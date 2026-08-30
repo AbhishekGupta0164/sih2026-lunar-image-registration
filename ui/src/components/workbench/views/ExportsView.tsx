@@ -139,155 +139,158 @@ Certified by SELENE-MATCH Automated Pipeline Core.
 `;
   };
 
-  // Helper to draw and download a PNG canvas plot for Checkerboard / Quiver / Coverage
-  const downloadCanvasPlot = (plotType: 'checkerboard' | 'quiver' | 'coverage', filename: string) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  // Helper to draw and return a data URL for a PNG canvas plot (Checkerboard / Quiver / Coverage)
+  const generateCanvasPlotDataUrl = (plotType: 'checkerboard' | 'quiver' | 'coverage'): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve('');
 
-    // Background
-    ctx.fillStyle = '#040910';
-    ctx.fillRect(0, 0, 800, 400);
+      // Background
+      ctx.fillStyle = '#040910';
+      ctx.fillRect(0, 0, 800, 400);
 
-    const refUrl = referenceImage?.previewUrl || '/synthetic/reference.png';
-    const srcUrl = sourceImage?.previewUrl || '/synthetic/synthetic_target.png';
+      const refUrl = referenceImage?.previewUrl || '/synthetic/reference.png';
+      const srcUrl = sourceImage?.previewUrl || '/synthetic/synthetic_target.png';
 
-    const refImg = new Image();
-    const srcImg = new Image();
-    refImg.crossOrigin = 'anonymous';
-    srcImg.crossOrigin = 'anonymous';
+      const refImg = new Image();
+      const srcImg = new Image();
+      refImg.crossOrigin = 'anonymous';
+      srcImg.crossOrigin = 'anonymous';
 
-    let loadedCount = 0;
-    const checkAndDraw = () => {
-      loadedCount++;
-      if (loadedCount < 2) return;
+      let loadedCount = 0;
+      const checkAndDraw = () => {
+        loadedCount++;
+        if (loadedCount < 2) return;
 
-      if (plotType === 'checkerboard') {
-        const rows = 8; const cols = 8;
-        const tileW = 800 / cols; const tileH = 400 / rows;
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const isRef = (r + c) % 2 === 0;
-            const img = isRef ? refImg : srcImg;
-            ctx.drawImage(img, c * tileW, r * tileH, tileW, tileH);
-            ctx.strokeStyle = 'rgba(111,246,255,0.25)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(c * tileW, r * tileH, tileW, tileH);
+        if (plotType === 'checkerboard') {
+          const rows = 8; const cols = 8;
+          const tileW = 800 / cols; const tileH = 400 / rows;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              const isRef = (r + c) % 2 === 0;
+              const img = isRef ? refImg : srcImg;
+              ctx.drawImage(img, c * tileW, r * tileH, tileW, tileH);
+              ctx.strokeStyle = 'rgba(111,246,255,0.25)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(c * tileW, r * tileH, tileW, tileH);
+            }
           }
-        }
-        // Telemetry overlay bar
-        ctx.fillStyle = 'rgba(4,9,16,0.85)';
-        ctx.fillRect(10, 10, 520, 36);
-        ctx.strokeStyle = 'rgba(111,246,255,0.4)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(10, 10, 520, 36);
-        ctx.fillStyle = '#6ff6ff';
-        ctx.font = 'bold 11px monospace';
-        ctx.fillText(`SELENE-MATCH :: 8x8 CHECKERBOARD OVERLAY PLOT`, 20, 26);
-        ctx.fillStyle = '#3ee6a0';
-        ctx.font = '10px monospace';
-        ctx.fillText(`RMSE: ${rmsePx} px (${rmseM} m) | Val RMSE: ${rmseValPx} px | Inliers: ${inlierRatio}%`, 20, 39);
-      } else if (plotType === 'quiver') {
-        ctx.drawImage(refImg, 0, 0, 800, 400);
-        ctx.fillStyle = 'rgba(4,9,16,0.60)';
-        ctx.fillRect(0, 0, 800, 400);
-
-        // Draw GCP displacement vectors
-        const gcpCount = 45;
-        for (let i = 0; i < gcpCount; i++) {
-          const x = 40 + (i % 9) * 85 + (Math.sin(i) * 15);
-          const y = 30 + Math.floor(i / 9) * 75 + (Math.cos(i) * 12);
-          const dx = (Math.cos(i * 1.3) * rmsePx * 8);
-          const dy = (Math.sin(i * 1.3) * rmsePx * 8);
-
-          ctx.strokeStyle = '#3ee6a0';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx, y + dy); ctx.stroke();
-
-          // Arrowhead
-          const angle = Math.atan2(dy, dx);
-          ctx.beginPath();
-          ctx.moveTo(x + dx, y + dy);
-          ctx.lineTo(x + dx - 5 * Math.cos(angle - Math.PI / 6), y + dy - 5 * Math.sin(angle - Math.PI / 6));
-          ctx.stroke();
-
-          ctx.fillStyle = '#6ff6ff';
-          ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
-        }
-
-        // Telemetry overlay bar
-        ctx.fillStyle = 'rgba(4,9,16,0.85)';
-        ctx.fillRect(10, 10, 520, 36);
-        ctx.strokeStyle = 'rgba(62,230,160,0.4)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(10, 10, 520, 36);
-        ctx.fillStyle = '#3ee6a0';
-        ctx.font = 'bold 11px monospace';
-        ctx.fillText(`SELENE-MATCH :: GCP DISPLACEMENT VECTOR QUIVER PLOT`, 20, 26);
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px monospace';
-        ctx.fillText(`Vectors scaled by RMSE ${rmsePx} px | CE90: ${ce90Px} px | Mean Res: ${meanResPx} px`, 20, 39);
-      } else {
-        // Coverage grid plot
-        ctx.drawImage(refImg, 0, 0, 800, 400);
-        ctx.fillStyle = 'rgba(4,9,16,0.65)';
-        ctx.fillRect(0, 0, 800, 400);
-
-        for (let c = 1; c < 8; c++) {
-          ctx.strokeStyle = 'rgba(62,230,160,0.35)';
+          // Telemetry overlay bar
+          ctx.fillStyle = 'rgba(4,9,16,0.85)';
+          ctx.fillRect(10, 10, 520, 36);
+          ctx.strokeStyle = 'rgba(111,246,255,0.4)';
           ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.moveTo(c * 100, 0); ctx.lineTo(c * 100, 400); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(0, c * 50); ctx.lineTo(800, c * 50); ctx.stroke();
+          ctx.strokeRect(10, 10, 520, 36);
+          ctx.fillStyle = '#6ff6ff';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText(`SELENE-MATCH :: 8x8 CHECKERBOARD OVERLAY PLOT`, 20, 26);
+          ctx.fillStyle = '#3ee6a0';
+          ctx.font = '10px monospace';
+          ctx.fillText(`RMSE: ${rmsePx} px (${rmseM} m) | Val RMSE: ${rmseValPx} px | Inliers: ${inlierRatio}%`, 20, 39);
+        } else if (plotType === 'quiver') {
+          ctx.drawImage(refImg, 0, 0, 800, 400);
+          ctx.fillStyle = 'rgba(4,9,16,0.60)';
+          ctx.fillRect(0, 0, 800, 400);
+
+          // Draw GCP displacement vectors
+          const gcpCount = 45;
+          for (let i = 0; i < gcpCount; i++) {
+            const x = 40 + (i % 9) * 85 + (Math.sin(i) * 15);
+            const y = 30 + Math.floor(i / 9) * 75 + (Math.cos(i) * 12);
+            const dx = (Math.cos(i * 1.3) * rmsePx * 8);
+            const dy = (Math.sin(i * 1.3) * rmsePx * 8);
+
+            ctx.strokeStyle = '#3ee6a0';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx, y + dy); ctx.stroke();
+
+            // Arrowhead
+            const angle = Math.atan2(dy, dx);
+            ctx.beginPath();
+            ctx.moveTo(x + dx, y + dy);
+            ctx.lineTo(x + dx - 5 * Math.cos(angle - Math.PI / 6), y + dy - 5 * Math.sin(angle - Math.PI / 6));
+            ctx.stroke();
+
+            ctx.fillStyle = '#6ff6ff';
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+          }
+
+          // Telemetry overlay bar
+          ctx.fillStyle = 'rgba(4,9,16,0.85)';
+          ctx.fillRect(10, 10, 520, 36);
+          ctx.strokeStyle = 'rgba(62,230,160,0.4)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(10, 10, 520, 36);
+          ctx.fillStyle = '#3ee6a0';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText(`SELENE-MATCH :: GCP DISPLACEMENT VECTOR QUIVER PLOT`, 20, 26);
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '10px monospace';
+          ctx.fillText(`Vectors scaled by RMSE ${rmsePx} px | CE90: ${ce90Px} px | Mean Res: ${meanResPx} px`, 20, 39);
+        } else {
+          // Coverage grid plot
+          ctx.drawImage(refImg, 0, 0, 800, 400);
+          ctx.fillStyle = 'rgba(4,9,16,0.65)';
+          ctx.fillRect(0, 0, 800, 400);
+
+          for (let c = 1; c < 8; c++) {
+            ctx.strokeStyle = 'rgba(62,230,160,0.35)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(c * 100, 0); ctx.lineTo(c * 100, 400); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, c * 50); ctx.lineTo(800, c * 50); ctx.stroke();
+          }
+
+          // Highlight occupied grid cells
+          const occupiedCount = Math.round((coverageFraction / 100) * 64);
+          for (let i = 0; i < occupiedCount; i++) {
+            const row = Math.floor(i / 8); const col = i % 8;
+            ctx.fillStyle = 'rgba(62,230,160,0.25)';
+            ctx.fillRect(col * 100, row * 50, 100, 50);
+          }
+
+          // Telemetry overlay bar
+          ctx.fillStyle = 'rgba(4,9,16,0.85)';
+          ctx.fillRect(10, 10, 520, 36);
+          ctx.strokeStyle = 'rgba(62,230,160,0.4)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(10, 10, 520, 36);
+          ctx.fillStyle = '#3ee6a0';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText(`SELENE-MATCH :: 8x8 SPATIAL UNIFORMITY COVERAGE MAP`, 20, 26);
+          ctx.fillStyle = '#6ff6ff';
+          ctx.font = '10px monospace';
+          ctx.fillText(`Coverage: ${coverageFraction}% (${occupiedCount}/64 cells) | NNI Dispersion: ${nniIndex}`, 20, 39);
         }
 
-        // Highlight occupied grid cells
-        const occupiedCount = Math.round((coverageFraction / 100) * 64);
-        for (let i = 0; i < occupiedCount; i++) {
-          const row = Math.floor(i / 8); const col = i % 8;
-          ctx.fillStyle = 'rgba(62,230,160,0.25)';
-          ctx.fillRect(col * 100, row * 50, 100, 50);
-        }
+        resolve(canvas.toDataURL('image/png'));
+      };
 
-        // Telemetry overlay bar
-        ctx.fillStyle = 'rgba(4,9,16,0.85)';
-        ctx.fillRect(10, 10, 520, 36);
-        ctx.strokeStyle = 'rgba(62,230,160,0.4)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(10, 10, 520, 36);
-        ctx.fillStyle = '#3ee6a0';
-        ctx.font = 'bold 11px monospace';
-        ctx.fillText(`SELENE-MATCH :: 8x8 SPATIAL UNIFORMITY COVERAGE MAP`, 20, 26);
-        ctx.fillStyle = '#6ff6ff';
-        ctx.font = '10px monospace';
-        ctx.fillText(`Coverage: ${coverageFraction}% (${occupiedCount}/64 cells) | NNI Dispersion: ${nniIndex}`, 20, 39);
-      }
+      refImg.onload = checkAndDraw;
+      srcImg.onload = checkAndDraw;
+      refImg.onerror = checkAndDraw;
+      srcImg.onerror = checkAndDraw;
 
-      // Convert canvas to Blob and download
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        addLog(`Generated and downloaded ${filename}`, 'success');
-        addToast(`${filename} exported successfully.`, 'success', 'Export Ready');
-      }, 'image/png');
-    };
-
-    refImg.onload = checkAndDraw;
-    srcImg.onload = checkAndDraw;
-    refImg.onerror = checkAndDraw;
-    srcImg.onerror = checkAndDraw;
-
-    refImg.src = refUrl;
-    srcImg.src = srcUrl;
+      refImg.src = refUrl;
+      srcImg.src = srcUrl;
+    });
   };
 
-  const handleDownload = (productPath: string | undefined, filename: string) => {
+  // Helper to draw and download a PNG canvas plot for Checkerboard / Quiver / Coverage
+  const downloadCanvasPlot = async (plotType: 'checkerboard' | 'quiver' | 'coverage', filename: string) => {
+    const dataUrl = await generateCanvasPlotDataUrl(plotType);
+    if (!dataUrl) return;
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+    addLog(`Generated and downloaded ${filename}`, 'success');
+    addToast(`${filename} exported successfully.`, 'success', 'Export Ready');
+  };
+
+  const handleDownload = async (productPath: string | undefined, filename: string) => {
     if (isReal && productPath) {
       const url = seleneApi.productUrl(productPath);
       const a = document.createElement('a');
@@ -310,10 +313,13 @@ Certified by SELENE-MATCH Automated Pipeline Core.
         addLog(`Generated and downloaded ${filename} with full metrics matrix`, 'success');
         addToast(`${filename} exported with complete GCP and residual matrix.`, 'success', 'CSV Exported');
       } else if (filename.endsWith('.pdf') || filename.endsWith('.txt')) {
-        // Build printable HTML report window / printable blob for PDF export
+        // Build printable HTML report window with real rendered diagnostic plots
         const reportText = generateReportContent();
-        const refUrl = referenceImage?.previewUrl || '/synthetic/reference.png';
-        const srcUrl = sourceImage?.previewUrl || '/synthetic/synthetic_target.png';
+        const [checkerDataUrl, quiverDataUrl, coverageDataUrl] = await Promise.all([
+          generateCanvasPlotDataUrl('checkerboard'),
+          generateCanvasPlotDataUrl('quiver'),
+          generateCanvasPlotDataUrl('coverage'),
+        ]);
 
         const printWin = window.open('', '_blank');
         if (printWin) {
@@ -334,7 +340,7 @@ Certified by SELENE-MATCH Automated Pipeline Core.
                 tr:nth-child(even) { background: #f8fafc; }
                 .plots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
                 .plot-card { border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; text-align: center; background: #f8fafc; }
-                .plot-card img { width: 100%; height: 110px; object-fit: cover; border-radius: 4px; }
+                .plot-card img { width: 100%; height: 110px; object-fit: contain; background: #040910; border-radius: 4px; }
                 .plot-card p { font-size: 10px; font-weight: 600; color: #334155; margin: 6px 0 0 0; }
                 .status-badge { display: inline-block; padding: 4px 10px; background: #dcfce7; color: #166534; font-weight: 700; font-size: 11px; border-radius: 4px; border: 1px solid #86efac; }
                 .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 10px; color: #94a3b8; font-style: italic; }
@@ -385,16 +391,16 @@ Certified by SELENE-MATCH Automated Pipeline Core.
               <h2>3. Diagnostic Output Plots & Deliverables</h2>
               <div class="plots-grid">
                 <div class="plot-card">
-                  <img src="${refUrl}" alt="Checkerboard Overlay" />
-                  <p>CHECKERBOARD OVERLAY</p>
+                  <img src="${checkerDataUrl}" alt="Checkerboard Overlay" />
+                  <p>8x8 CHECKERBOARD OVERLAY</p>
                 </div>
                 <div class="plot-card">
-                  <img src="${srcUrl}" alt="Quiver Vector Plot" />
-                  <p>QUIVER VECTOR PLOT</p>
+                  <img src="${quiverDataUrl}" alt="Quiver Vector Plot" />
+                  <p>GCP DISPLACEMENT VECTOR QUIVER PLOT</p>
                 </div>
                 <div class="plot-card">
-                  <img src="${refUrl}" alt="Coverage Heatmap" />
-                  <p>SPATIAL COVERAGE MAP</p>
+                  <img src="${coverageDataUrl}" alt="Coverage Heatmap" />
+                  <p>SPATIAL UNIFORMITY COVERAGE MAP</p>
                 </div>
               </div>
 
@@ -417,7 +423,6 @@ Certified by SELENE-MATCH Automated Pipeline Core.
         }
 
         addLog(`Generated and opened full PDF deliverable report with bundled calculation details & plots`, 'success');
-        addToast(`Full PDF deliverable report generated successfully!`, 'success', 'PDF Report Ready');
       } else if (filename.includes('checkerboard')) {
         downloadCanvasPlot('checkerboard', filename);
       } else if (filename.includes('quiver')) {
