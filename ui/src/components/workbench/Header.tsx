@@ -33,7 +33,7 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="app-header h-14 shrink-0 flex items-center justify-between px-6">
+    <header className="app-header h-14 shrink-0 flex items-center justify-between px-6 border-b border-cyan-500/35 bg-gradient-to-r from-slate-950 via-[#05111f] to-slate-950 shadow-[0_4px_20px_rgba(29,100,236,0.2)]">
       <div className="flex items-center gap-4">
         <a
           href="#home"
@@ -41,34 +41,34 @@ export const Header: React.FC = () => {
             e.preventDefault();
             goHome();
           }}
-          className="text-slate-600 hover:text-brand-400 transition-colors"
+          className="p-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 hover:text-white hover:border-cyan-300 transition-all shadow-[0_0_10px_rgba(111,246,255,0.15)] flex items-center justify-center cursor-pointer"
           title="Back to home"
         >
           <ArrowLeft className="w-4 h-4" />
         </a>
-        <div>
-          <h2 id="header-title" className="text-white font-semibold text-[15px]">
-            {title}
-          </h2>
-          <p
-            id="header-subtitle"
-            className="font-mono text-[9px] text-slate-500 tracking-[0.14em] mt-0.5"
-          >
-            {subtitle}
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 id="header-title" className="text-white font-bold font-display text-[15.5px] tracking-wide flex items-center gap-2">
+              {title}
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(111,246,255,0.8)] inline-block" />
+            </h2>
+            <p
+              id="header-subtitle"
+              className="font-mono text-[9.5px] text-cyan-300/80 tracking-[0.16em] mt-0.5 uppercase"
+            >
+              {subtitle}
+            </p>
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="clock-chip hidden md:flex">
-          <Satellite className="w-3 h-3" />
+        <div className="clock-chip hidden md:flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-400/35 bg-cyan-950/40 text-cyan-300 font-mono text-[10px] tracking-wider shadow-[0_0_12px_rgba(111,246,255,0.15)]">
+          <Satellite className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
           <span id="utc-clock">{utcTime}</span>
         </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="text-slate-600">System</span>
-          <span className="flex items-center gap-1.5 text-success font-mono text-[9.5px] tracking-[0.14em]">
-            <span className="led" />
-            ONLINE
-          </span>
+        <div className="flex items-center gap-2 text-[11px] px-3 py-1 rounded-full border border-emerald-500/40 bg-emerald-950/40 text-emerald-400 font-mono text-[9.5px] tracking-[0.14em] shadow-[0_0_12px_rgba(62,230,160,0.2)]">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(62,230,160,0.8)] inline-block" />
+          <span className="font-bold">SYSTEM ONLINE</span>
         </div>
       </div>
     </header>
