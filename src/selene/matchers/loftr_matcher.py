@@ -51,7 +51,7 @@ def match_loftr(
             mkpts1 = correspondences["keypoints1"].cpu().numpy().astype(np.float32)
             scores = correspondences["confidence"].cpu().numpy().astype(np.float32)
 
-        if len(mkpts0) > 0:
+        if len(mkpts0) >= 4:
             return mkpts0, mkpts1, scores
 
     except BaseException:

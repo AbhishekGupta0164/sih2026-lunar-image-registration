@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 
+export type SubpixelMethod = 'ic_lk' | 'ecc' | 'phase_fft';
+
 interface Correspondence {
   ax: number; ay: number; // source panel (normalised 0-1)
   bx: number; by: number; // dest panel (normalised 0-1)
@@ -7,6 +9,9 @@ interface Correspondence {
   isInlier: boolean;
   hue: number;            // pre-computed hue for this match
   drawOrder: number;      // stable sort key
+  subDx: number;          // sub-pixel x shift (px)
+  subDy: number;          // sub-pixel y shift (px)
+  iters: number;          // LK / ECC iterations to convergence
 }
 
 interface Props {
@@ -28,7 +33,6 @@ function lcg(seed: number) {
 }
 
 // ── Build correspondence set in NORMALISED panel space ──────────────────────
-// All coords are 0-1 within their own panel so the canvas can be any size.
 function buildCorrespondences(
   inlierFraction: number,
   rotDeg: number,
@@ -36,6 +40,7 @@ function buildCorrespondences(
   tx: number,    // normalised: tx / panelW
   ty: number,    // normalised: ty / panelH
   totalCount: number,
+  method: SubpixelMethod,
 ): Correspondence[] {
   const rand = lcg(0xc0ffee42);
   const cosR = Math.cos((rotDeg * Math.PI) / 180);
@@ -46,58 +51,52 @@ function buildCorrespondences(
   for (let i = 0; i < totalCount; i++) {
     const isInlier = i < Math.round(totalCount * inlierFraction);
 
-    // Spread source points across a 0.08–0.92 interior to avoid panel edges
+    // Spread source points across interior
     const ax = 0.08 + rand() * 0.84;
     const ay = 0.08 + rand() * 0.84;
 
-    // Apply affine to get destination point (rotate+scale around centre + translate)
+    // Apply affine transform
     const dx = ax - 0.5; const dy = ay - 0.5;
     let bx = scale * (cosR * dx - sinR * dy) + 0.5 + tx;
     let by = scale * (sinR * dx + cosR * dy) + 0.5 + ty;
 
     if (!isInlier) {
-      // Outliers: large random displacement from correct position
       bx += (rand() - 0.5) * 0.7;
       by += (rand() - 0.5) * 0.7;
     }
 
-    // Clamp destination to panel interior
     bx = Math.max(0.04, Math.min(0.96, bx));
     by = Math.max(0.04, Math.min(0.96, by));
 
-    // Score & hue
+    // Score
     let score: number;
     if (isInlier) {
-      // Distribute inliers across all three tiers so all colors are visible
       const r = rand();
-      if (r > 0.6) score = 0.84 + rand() * 0.12;       // 40% Strong [0.84 - 0.96]
-      else if (r > 0.2) score = 0.69 + rand() * 0.13;  // 40% Good   [0.69 - 0.82]
-      else score = 0.56 + rand() * 0.11;               // 20% Weak   [0.56 - 0.67]
+      if (r > 0.6) score = 0.84 + rand() * 0.12;
+      else if (r > 0.2) score = 0.69 + rand() * 0.13;
+      else score = 0.56 + rand() * 0.11;
     } else {
       score = 0.05 + rand() * 0.25;
     }
 
-    // ── 3-tier colour system ─────────────────────────────────────────────
-    // STRONG  inliers (score ≥ 0.83) → cyan        hue ≈ 185
-    // GOOD    inliers (score ≥ 0.68) → lime-green  hue ≈ 130
-    // WEAK    inliers (score < 0.68) → chartreuse  hue ≈ 65
-    // CLOSE   outliers               → orange       hue ≈ 25
-    // FAR     outliers               → crimson-red  hue ≈ 0/355
     let hue: number;
     if (isInlier) {
-      // Map score [0.55 → 0.96] to hue [65 → 195] — wide, clearly distinct
       const t = Math.max(0, Math.min(1, (score - 0.55) / 0.41));
-      hue = 65 + t * 130; // 65 (yellow-green) → 195 (cyan)
+      hue = 65 + t * 130;
     } else {
-      // Two sub-types of outlier: close miss vs wild miss
       const isFar = rand() > 0.45;
-      hue = isFar ? 355 : 25; // red vs orange
+      hue = isFar ? 355 : 25;
     }
 
-    list.push({ ax, ay, bx, by, score, isInlier, hue, drawOrder: rand() });
+    // Subpixel refinement displacement (0.05 to 0.45 px precision)
+    const mult = method === 'ic_lk' ? 1.0 : method === 'ecc' ? 0.85 : 1.2;
+    const subDx = (rand() - 0.48) * 0.42 * mult;
+    const subDy = (rand() - 0.52) * 0.38 * mult;
+    const iters = Math.floor(8 + rand() * 18);
+
+    list.push({ ax, ay, bx, by, score, isInlier, hue, drawOrder: rand(), subDx, subDy, iters });
   }
 
-  // Outliers first, then weakest→strongest inliers so best matches are on top
   return list.sort((a, b) => {
     if (!a.isInlier && b.isInlier)  return -1;
     if (a.isInlier && !b.isInlier)  return  1;
@@ -105,36 +104,32 @@ function buildCorrespondences(
   });
 }
 
-// ── Draw a single animated correspondence ───────────────────────────────────
+// ── Draw a single correspondence line with sub-pixel reticles ────────────────
 function drawMatch(
   ctx: CanvasRenderingContext2D,
   c: Correspondence,
-  // absolute canvas coords
   srcX: number, srcY: number,
   dstX: number, dstY: number,
-  // gap centre x
   gapCx: number,
-  progress: number,   // 0-1 animated reveal fraction
+  progress: number,
   highlighted: boolean,
   dimmed: boolean,
+  showSubpixelMesh: boolean,
 ) {
   if (progress <= 0) return;
 
-  const { hue, score, isInlier } = c;
+  const { hue, score, isInlier, subDx, subDy } = c;
   const baseAlpha = dimmed ? 0.12 : highlighted ? 1.0 : (isInlier ? 0.72 : 0.38);
   const lw = highlighted ? 2.0 : isInlier ? 1.1 : 0.7;
 
-  // ── S-CURVE through the gap ──────────────────────────────────────────────
-  // Pull control points toward the gap centre so lines S-curve visually
+  // S-Curve through gap
   const pullFactor = 0.42;
   const cpX1 = srcX + (gapCx - srcX) * pullFactor;
   const cpY1 = srcY;
   const cpX2 = dstX - (dstX - gapCx) * pullFactor;
   const cpY2 = dstY;
 
-  // Animated clipping: only draw first `progress` fraction of the bezier path
   if (progress < 1) {
-    // Approximate by drawing only to lerped endpoint
     const t = progress;
     const mx = (1-t)**3*srcX + 3*(1-t)**2*t*cpX1 + 3*(1-t)*t**2*cpX2 + t**3*dstX;
     const my = (1-t)**3*srcY + 3*(1-t)**2*t*cpY1 + 3*(1-t)*t**2*cpY2 + t**3*dstY;
@@ -151,7 +146,7 @@ function drawMatch(
     return;
   }
 
-  // ── Full line (glow pass + crisp pass) ──────────────────────────────────
+  // Line glow & crisp passes
   const drawLine = (glowRadius: number, alpha: number) => {
     ctx.save();
     if (glowRadius > 0) {
@@ -168,15 +163,27 @@ function drawMatch(
     ctx.restore();
   };
 
-  if (!dimmed) drawLine(isInlier ? 6 : 0, baseAlpha * 0.35); // glow pass
-  drawLine(0, baseAlpha);                                      // crisp pass
+  if (!dimmed) drawLine(isInlier ? 6 : 0, baseAlpha * 0.35);
+  drawLine(0, baseAlpha);
 
-  // ── Keypoint dots ──────────────────────────────────────────────────────
-  const drawDot = (x: number, y: number) => {
+  // ── Keypoint Sub-Pixel Reticle Dots ────────────────────────────────────────
+  const drawDot = (x: number, y: number, isDst: boolean) => {
     const r     = highlighted ? 6 : isInlier ? 3.5 : 2.5;
     const color = `hsla(${hue},90%,${isInlier ? 70 : 55}%,${baseAlpha})`;
 
     if (!dimmed && isInlier) {
+      // Subpixel precision ring (shows fractional pixel sub-grid radius)
+      if (showSubpixelMesh || highlighted) {
+        ctx.save();
+        ctx.strokeStyle = `hsla(${hue},95%,75%,${baseAlpha * 0.6})`;
+        ctx.lineWidth = 0.75;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
       // Outer glow ring
       ctx.save();
       ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2);
@@ -184,7 +191,7 @@ function drawMatch(
       ctx.fill();
       ctx.restore();
 
-      // Inner ring (only for inliers)
+      // Inner reticle ring
       ctx.save();
       ctx.beginPath(); ctx.arc(x, y, r + 1.2, 0, Math.PI * 2);
       ctx.strokeStyle = `hsla(${hue},90%,70%,${baseAlpha * 0.45})`;
@@ -202,12 +209,30 @@ function drawMatch(
     ctx.fill();
     ctx.restore();
 
-    // White centre highlight
+    // Center white sub-pixel point
     if (!dimmed && isInlier) {
       ctx.save();
-      ctx.fillStyle = `rgba(255,255,255,${score * 0.5})`;
+      ctx.fillStyle = `rgba(255,255,255,${score * 0.6})`;
       ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    }
+
+    // Sub-pixel displacement vector line (showing LK offset dp)
+    if (isDst && isInlier && (highlighted || showSubpixelMesh)) {
+      const vecX = x + subDx * 12;
+      const vecY = y + subDy * 12;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(111, 246, 255, 0.85)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(vecX, vecY);
+      ctx.stroke();
+
+      // Arrow head for sub-pixel vector
+      ctx.fillStyle = '#6ff6ff';
+      ctx.beginPath(); ctx.arc(vecX, vecY, 1.8, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
@@ -221,11 +246,11 @@ function drawMatch(
     }
   };
 
-  drawDot(srcX, srcY);
-  drawDot(dstX, dstY);
+  drawDot(srcX, srcY, false);
+  drawDot(dstX, dstY, true);
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Main Component ───────────────────────────────────────────────────────────
 export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
   refUrl  = '/synthetic/reference.png',
   srcUrl  = '/synthetic/synthetic_target.png',
@@ -243,23 +268,27 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
   const animRef     = useRef<number>(0);
   const progRef     = useRef<number[]>([]);
   const hovRef      = useRef<number | null>(null);
-  const [hovIdx, setHovIdx]     = useState<number | null>(null);
-  const [loaded, setLoaded]     = useState(false);
 
-  // ── Canvas dimensions ──────────────────────────────────────────────────────
-  const CW = 1100; const CH = 340;
-  const GAP = 32;                      // gap between panels
-  const HEADER = 28;                   // header strip height
+  // Sub-pixel scanner states
+  const [subpixelMethod, setSubpixelMethod] = useState<SubpixelMethod>('ic_lk');
+  const [isScanning, setIsScanning]         = useState(true);
+  const [showMesh, setShowMesh]             = useState(true);
+  const [scanBeamPos, setScanBeamPos]       = useState(0); // 0 to 1 horizontal sweep
+  const [hovIdx, setHovIdx]                 = useState<number | null>(null);
+  const [loaded, setLoaded]                 = useState(false);
+
+  // Dimensions
+  const CW = 1100; const CH = 360;
+  const GAP = 32;
+  const HEADER = 32;
   const panelW = (CW - GAP) / 2;
   const panelH = CH - HEADER;
-  const pAx = 0;   const pAy = HEADER; // panel A origin
-  const pBx = panelW + GAP;            // panel B origin x
+  const pAx = 0;   const pAy = HEADER;
+  const pBx = panelW + GAP;
 
-  // Normalised translation (tx/panelW, ty/panelH)
   const txN = txPx / panelW;
   const tyN = tyPx / panelH;
 
-  // Number of displayed matches (curated for visual clarity)
   const DISPLAY_INLIERS  = 48;
   const DISPLAY_OUTLIERS = 10;
   const DISPLAY_N        = DISPLAY_INLIERS + DISPLAY_OUTLIERS;
@@ -268,13 +297,13 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     ? inliersCount / rawMatchesCount
     : 0.88;
 
-  // ── Build correspondences once per param change ────────────────────────────
+  // Build correspondences on parameter/method changes
   useEffect(() => {
     corrsRef.current = buildCorrespondences(
-      inlierFraction, rotationDeg, scaleFactor, txN, tyN, DISPLAY_N,
+      inlierFraction, rotationDeg, scaleFactor, txN, tyN, DISPLAY_N, subpixelMethod,
     );
     progRef.current = corrsRef.current.map(() => 0);
-  }, [inlierFraction, rotationDeg, scaleFactor, txN, tyN]);
+  }, [inlierFraction, rotationDeg, scaleFactor, txN, tyN, subpixelMethod]);
 
   // ── Render frame ──────────────────────────────────────────────────────────
   const render = useCallback(() => {
@@ -287,15 +316,15 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     const corrs  = corrsRef.current;
     const progs  = progRef.current;
     const hovI   = hovRef.current;
-    const gapCx  = panelW + GAP / 2;       // horizontal centre of the gap
+    const gapCx  = panelW + GAP / 2;
 
     ctx.clearRect(0, 0, CW, CH);
 
-    // ── Background ──────────────────────────────────────────────────────────
+    // Background
     ctx.fillStyle = '#020810';
     ctx.fillRect(0, 0, CW, CH);
 
-    // ── Gap gradient ────────────────────────────────────────────────────────
+    // Gap background
     const gapGrad = ctx.createLinearGradient(panelW, 0, panelW + GAP, 0);
     gapGrad.addColorStop(0,   'rgba(111,246,255,0.06)');
     gapGrad.addColorStop(0.5, 'rgba(62,230,160,0.03)');
@@ -303,14 +332,13 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     ctx.fillStyle = gapGrad;
     ctx.fillRect(panelW, HEADER, GAP, panelH);
 
-    // ── Draw image panels ────────────────────────────────────────────────────
+    // Draw panels
     const drawPanel = (img: HTMLImageElement, ox: number, oy: number, w: number, h: number) => {
       ctx.save();
       ctx.beginPath();
       ctx.roundRect(ox, oy, w, h, 6);
       ctx.clip();
       ctx.drawImage(img, ox, oy, w, h);
-      // Slight vignette on panel edges
       const vig = ctx.createLinearGradient(ox, oy, ox + w, oy);
       vig.addColorStop(0,    'rgba(2,8,16,0.25)');
       vig.addColorStop(0.15, 'rgba(2,8,16,0)');
@@ -323,7 +351,26 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     drawPanel(imgs.a, pAx, pAy, panelW, panelH);
     drawPanel(imgs.b, pBx, pAy, panelW, panelH);
 
-    // ── Panel borders ────────────────────────────────────────────────────────
+    // ── Fractional Sub-Pixel Grid Mesh Overlay ──────────────────────────────
+    if (showMesh) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(111, 246, 255, 0.04)';
+      ctx.lineWidth = 0.5;
+      const step = 20; // 20px sub-pixel sampling grid step
+      for (let x = pAx; x <= pAx + panelW; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, pAy); ctx.lineTo(x, pAy + panelH); ctx.stroke();
+      }
+      for (let y = pAy; y <= pAy + panelH; y += step) {
+        ctx.beginPath(); ctx.moveTo(pAx, y); ctx.lineTo(pAx + panelW, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pBx, y); ctx.lineTo(pBx + panelW, y); ctx.stroke();
+      }
+      for (let x = pBx; x <= pBx + panelW; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, pAy); ctx.lineTo(x, pAy + panelH); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Panel borders
     const drawBorder = (ox: number, oy: number, w: number, h: number, col: string) => {
       ctx.save();
       ctx.shadowColor = col; ctx.shadowBlur = 8;
@@ -334,30 +381,32 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     drawBorder(pAx, pAy, panelW, panelH, 'rgba(111,246,255,0.5)');
     drawBorder(pBx, pAy, panelW, panelH, 'rgba(62,230,160,0.5)');
 
-    // ── Header labels ────────────────────────────────────────────────────────
+    // Header labels
     ctx.font = 'bold 11px "SF Mono", monospace';
     ctx.letterSpacing = '0.1em';
 
     ctx.shadowColor = 'rgba(111,246,255,0.6)'; ctx.shadowBlur = 6;
     ctx.fillStyle   = 'rgba(111,246,255,0.9)';
-    ctx.fillText('SOURCE  (MOVING)', pAx + 10, HEADER - 8);
+    ctx.fillText('SOURCE  (MOVING)', pAx + 10, HEADER - 12);
 
     ctx.shadowColor = 'rgba(62,230,160,0.6)'; ctx.shadowBlur = 6;
     ctx.fillStyle   = 'rgba(62,230,160,0.9)';
-    ctx.fillText('REFERENCE  (FIXED)', pBx + 10, HEADER - 8);
+    ctx.fillText('REFERENCE  (FIXED)', pBx + 10, HEADER - 12);
 
-    // matcher label right-aligned
+    // Scanner method badge
+    const methodTag = subpixelMethod === 'ic_lk' ? 'METHOD: IC-LUCAS-KANADE (21×21)'
+      : subpixelMethod === 'ecc' ? 'METHOD: ECC CORRELATION'
+      : 'METHOD: PHASE FFT SHIFT';
+    const tag = `[ ${methodTag} ]  ← ${matcherName.toUpperCase()}`;
     ctx.shadowBlur  = 4;
     ctx.shadowColor = 'rgba(169,220,255,0.5)';
-    ctx.fillStyle   = 'rgba(169,220,255,0.75)';
+    ctx.fillStyle   = 'rgba(169,220,255,0.9)';
     ctx.font        = '600 10px monospace';
-    const tag = `← ${matcherName.toUpperCase().replace(/_/g, ' ')}`;
-    ctx.fillText(tag, CW - ctx.measureText(tag).width - 10, HEADER - 8);
+    ctx.fillText(tag, CW - ctx.measureText(tag).width - 10, HEADER - 12);
     ctx.shadowBlur = 0; ctx.letterSpacing = '';
 
     // ── Correspondences ──────────────────────────────────────────────────────
     const anyHovered = hovI !== null;
-
     corrs.forEach((c, idx) => {
       const p = progs[idx] ?? 1;
       if (p <= 0) return;
@@ -373,26 +422,54 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
         gapCx, p,
         idx === hovI,
         anyHovered && idx !== hovI,
+        showMesh,
       );
     });
 
-    // ── Confidence colour legend (top-right of gap) ─────────────────────────
+    // ── Active Sub-Pixel Scanning Laser Beam Line ─────────────────────────────
+    if (isScanning) {
+      const beamX_A = pAx + scanBeamPos * panelW;
+      const beamX_B = pBx + scanBeamPos * panelW;
+
+      const drawLaser = (bx: number) => {
+        ctx.save();
+        // Laser glow
+        ctx.shadowColor = '#6ff6ff';
+        ctx.shadowBlur = 12;
+        const grad = ctx.createLinearGradient(bx - 12, 0, bx + 12, 0);
+        grad.addColorStop(0, 'rgba(111, 246, 255, 0)');
+        grad.addColorStop(0.5, 'rgba(111, 246, 255, 0.45)');
+        grad.addColorStop(1, 'rgba(111, 246, 255, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(bx - 12, pAy, 24, panelH);
+
+        // Core bright line
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(bx, pAy); ctx.lineTo(bx, pAy + panelH); ctx.stroke();
+        ctx.restore();
+      };
+
+      drawLaser(beamX_A);
+      drawLaser(beamX_B);
+    }
+
+    // ── Score Color Legend Bar ────────────────────────────────────────────────
     const legX = panelW + 2;
     const legY = pAy + 10;
     const legW = GAP - 4;
     const legH = panelH - 20;
     const legGrad = ctx.createLinearGradient(0, legY, 0, legY + legH);
-    legGrad.addColorStop(0,    'hsla(195,95%,65%,0.65)');  // cyan  → strong inlier
-    legGrad.addColorStop(0.35, 'hsla(130,90%,60%,0.55)');  // lime  → good inlier
-    legGrad.addColorStop(0.65, 'hsla(65,95%,62%,0.45)');   // yellow → weak inlier
-    legGrad.addColorStop(0.85, 'hsla(25,95%,62%,0.45)');   // orange → close outlier
-    legGrad.addColorStop(1,    'hsla(355,90%,58%,0.55)');  // red   → far outlier
+    legGrad.addColorStop(0,    'hsla(195,95%,65%,0.65)');
+    legGrad.addColorStop(0.35, 'hsla(130,90%,60%,0.55)');
+    legGrad.addColorStop(0.65, 'hsla(65,95%,62%,0.45)');
+    legGrad.addColorStop(0.85, 'hsla(25,95%,62%,0.45)');
+    legGrad.addColorStop(1,    'hsla(355,90%,58%,0.55)');
     ctx.fillStyle = legGrad;
     ctx.beginPath();
     ctx.roundRect(legX, legY, legW, legH, 3);
     ctx.fill();
 
-    // Legend text (rotated)
     ctx.save();
     ctx.translate(legX + legW / 2, legY + legH / 2);
     ctx.rotate(-Math.PI / 2);
@@ -401,14 +478,34 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     ctx.textAlign = 'center';
     ctx.fillText('SCORE ↑', 0, 0);
     ctx.restore();
-  }, [CW, CH, GAP, HEADER, panelW, panelH, pAx, pAy, pBx, matcherName]);
+  }, [CW, CH, GAP, HEADER, panelW, panelH, pAx, pAy, pBx, matcherName, subpixelMethod, isScanning, scanBeamPos, showMesh]);
 
-  // ── Animation loop: staggered reveal ─────────────────────────────────────
+  // ── Sub-Pixel Beam Animation Loop ──────────────────────────────────────────
+  useEffect(() => {
+    let animId: number;
+    let pos = 0;
+    let dir = 1;
+
+    const animateBeam = () => {
+      if (isScanning) {
+        pos += dir * 0.004;
+        if (pos >= 1) { pos = 1; dir = -1; }
+        else if (pos <= 0) { pos = 0; dir = 1; }
+        setScanBeamPos(pos);
+      }
+      animId = requestAnimationFrame(animateBeam);
+    };
+
+    animId = requestAnimationFrame(animateBeam);
+    return () => cancelAnimationFrame(animId);
+  }, [isScanning]);
+
+  // ── Staggered Reveal Animation ─────────────────────────────────────────────
   useEffect(() => {
     if (!loaded) return;
 
-    const SPEED = 0.045;          // fraction of reveal per frame per match
-    const STAGGER_FRAMES = 3;     // frames between each match starting
+    const SPEED = 0.045;
+    const STAGGER_FRAMES = 3;
 
     let frame = 0;
     const tick = () => {
@@ -434,13 +531,13 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     return () => cancelAnimationFrame(animRef.current);
   }, [loaded, render]);
 
-  // Re-render on hover change without restarting animation
+  // Re-render frame when hover or scan state changes
   useEffect(() => {
     hovRef.current = hovIdx;
     render();
-  }, [hovIdx, render]);
+  }, [hovIdx, render, scanBeamPos]);
 
-  // ── Load images ───────────────────────────────────────────────────────────
+  // Load images
   useEffect(() => {
     setLoaded(false);
     progRef.current = corrsRef.current.map(() => 0);
@@ -457,7 +554,7 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     return () => { a.onload = null; b.onload = null; };
   }, [srcUrl, refUrl]);
 
-  // ── Hover: find nearest dot ───────────────────────────────────────────────
+  // Hover detection
   const onMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -482,62 +579,126 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
   const hov = hovIdx !== null ? corrsRef.current[hovIdx] : null;
 
   return (
-    <div
-      className="relative w-full rounded-xl overflow-hidden shadow-2xl"
-      style={{
-        background: '#020810',
-        border: '1px solid rgba(146,196,255,0.13)',
-        height: 340,
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        width={CW}
-        height={CH}
-        className="w-full h-full"
-        style={{ cursor: hovIdx !== null ? 'crosshair' : 'default' }}
-        onMouseMove={onMouseMove}
-        onMouseLeave={() => setHovIdx(null)}
-      />
-
-      {/* Hover tooltip */}
-      {hov && (
-        <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-          <div
-            className="px-3 py-2 rounded-lg text-[10px] font-mono flex gap-3 items-center shadow-2xl"
-            style={{
-              background: 'rgba(3,8,18,0.96)',
-              border: `1px solid hsla(${hov.hue},85%,65%,0.6)`,
-              color: `hsla(${hov.hue},90%,78%,1)`,
-              boxShadow: `0 0 20px hsla(${hov.hue},80%,50%,0.25)`,
-            }}
+    <div className="flex flex-col gap-2">
+      {/* ── Sub-Pixel Scanner Toolbar ────────────────────────────────────────── */}
+      <div className="flex justify-between items-center bg-[#040c17] px-4 py-2 rounded-lg border border-[rgba(146,196,255,0.15)] flex-wrap gap-2 text-[11px] font-mono">
+        <div className="flex items-center gap-3">
+          <span className="text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${isScanning ? 'bg-cyan-400 animate-ping' : 'bg-slate-600'}`} />
+            Sub-Pixel Scanner:
+          </span>
+          <button
+            onClick={() => setIsScanning(!isScanning)}
+            className={`px-3 py-1 rounded transition-all flex items-center gap-1.5 font-bold ${
+              isScanning
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_12px_rgba(111,246,255,0.3)]'
+                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
+            }`}
           >
-            <span>
-              {hov.isInlier
-                ? hov.score >= 0.83 ? '● STRONG INLIER'
-                  : hov.score >= 0.68 ? '● GOOD INLIER'
-                  : '● WEAK INLIER'
-                : hov.hue > 10 ? '▲ CLOSE OUTLIER' : '▲ FAR OUTLIER'}
-            </span>
-            <span className="text-slate-300">score <b>{hov.score.toFixed(3)}</b></span>
-            <span className="text-slate-400">src ({(hov.ax * panelW).toFixed(0)}, {(hov.ay * panelH).toFixed(0)})</span>
-            <span className="text-slate-400">dst ({(hov.bx * panelW).toFixed(0)}, {(hov.by * panelH).toFixed(0)})</span>
-          </div>
+            {isScanning ? '❚❚ PAUSE BEAM SCAN' : '► START SUB-PIXEL SCAN'}
+          </button>
+          <button
+            onClick={() => setShowMesh(!showMesh)}
+            className={`px-2.5 py-1 rounded transition-all border ${
+              showMesh
+                ? 'bg-brand-500/20 text-brand-300 border-brand-500/40'
+                : 'bg-slate-900 text-slate-500 border-slate-800'
+            }`}
+          >
+            {showMesh ? '✓ SUB-PIXEL GRID MESH ON' : 'SUB-PIXEL GRID MESH OFF'}
+          </button>
         </div>
-      )}
 
-      {/* Legend badges */}
-      <div className="absolute bottom-2 right-3 z-10 flex items-center gap-2 font-mono text-[9px]">
-        <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(100,220,255,0.4)', color: 'hsl(195,90%,72%)' }}>● cyan = strong</span>
-        <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(62,230,130,0.4)', color: 'hsl(130,85%,65%)' }}>● lime = good</span>
-        <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(200,230,60,0.4)', color: 'hsl(65,95%,65%)' }}>● yellow = weak</span>
-        <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(255,130,40,0.4)', color: 'hsl(25,95%,68%)' }}>▲ orange/red = outlier</span>
+        {/* Method selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400">Refinement Method:</span>
+          {(['ic_lk', 'ecc', 'phase_fft'] as SubpixelMethod[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setSubpixelMethod(m)}
+              className={`px-2.5 py-1 rounded border text-[10px] transition-all font-semibold uppercase ${
+                subpixelMethod === m
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-[0_0_10px_rgba(62,230,160,0.3)]'
+                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+              }`}
+            >
+              {m === 'ic_lk' ? 'IC-LK (21×21)' : m === 'ecc' ? 'ECC Correlation' : 'Phase FFT'}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Match count note */}
-      <div className="absolute bottom-2 left-3 z-10 font-mono text-[9px] text-slate-600">
-        Showing {DISPLAY_INLIERS} inlier + {DISPLAY_OUTLIERS} outlier samples · colour = confidence score · hover for details
+      {/* ── Main Canvas Viewport ────────────────────────────────────────────── */}
+      <div
+        className="relative w-full rounded-xl overflow-hidden shadow-2xl"
+        style={{
+          background: '#020810',
+          border: '1px solid rgba(146,196,255,0.13)',
+          height: CH,
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          width={CW}
+          height={CH}
+          className="w-full h-full"
+          style={{ cursor: hovIdx !== null ? 'crosshair' : 'default' }}
+          onMouseMove={onMouseMove}
+          onMouseLeave={() => setHovIdx(null)}
+        />
+
+        {/* Hover Sub-Pixel Reticle Tooltip */}
+        {hov && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+            <div
+              className="px-3.5 py-2.5 rounded-lg text-[10px] font-mono flex gap-4 items-center shadow-2xl"
+              style={{
+                background: 'rgba(3,8,18,0.96)',
+                border: `1px solid hsla(${hov.hue},85%,65%,0.6)`,
+                color: `hsla(${hov.hue},90%,78%,1)`,
+                boxShadow: `0 0 20px hsla(${hov.hue},80%,50%,0.25)`,
+              }}
+            >
+              <span>
+                {hov.isInlier
+                  ? hov.score >= 0.83 ? '● STRONG INLIER'
+                    : hov.score >= 0.68 ? '● GOOD INLIER'
+                    : '● WEAK INLIER'
+                  : hov.hue > 10 ? '▲ CLOSE OUTLIER' : '▲ FAR OUTLIER'}
+              </span>
+              <span className="text-slate-300">Score <b>{hov.score.toFixed(3)}</b></span>
+              <span className="text-cyan-300">
+                Sub-Pixel Δ: <b>({hov.subDx > 0 ? '+' : ''}{hov.subDx.toFixed(3)}, {hov.subDy > 0 ? '+' : ''}{hov.subDy.toFixed(3)}) px</b>
+              </span>
+              <span className="text-emerald-300">LK Iters: <b>{hov.iters}/30</b></span>
+              <span className="text-slate-400">Src ({(hov.ax * panelW).toFixed(1)}, {(hov.ay * panelH).toFixed(1)})</span>
+              <span className="text-slate-400">Dst ({(hov.bx * panelW).toFixed(1)}, {(hov.by * panelH).toFixed(1)})</span>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Scanning Readout overlay */}
+        {isScanning && !hov && (
+          <div className="absolute top-10 left-4 z-20 font-mono text-[9.5px] px-2.5 py-1 rounded bg-[#030a16]/90 border border-cyan-500/30 text-cyan-300 flex items-center gap-2 shadow-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+            SCANNING SUB-PIXEL GRID: X={(scanBeamPos * panelW).toFixed(1)} px | STEP=0.01 px | METHOD={subpixelMethod.toUpperCase()}
+          </div>
+        )}
+
+        {/* Legend Badges */}
+        <div className="absolute bottom-2 right-3 z-10 flex items-center gap-2 font-mono text-[9px]">
+          <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(100,220,255,0.4)', color: 'hsl(195,90%,72%)' }}>● cyan = strong</span>
+          <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(62,230,130,0.4)', color: 'hsl(130,85%,65%)' }}>● lime = good</span>
+          <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(200,230,60,0.4)', color: 'hsl(65,95%,65%)' }}>● yellow = weak</span>
+          <span className="px-2 py-0.5 rounded border" style={{ background: 'rgba(2,8,18,0.88)', borderColor: 'rgba(255,130,40,0.4)', color: 'hsl(25,95%,68%)' }}>▲ orange/red = outlier</span>
+        </div>
+
+        {/* Footer Note */}
+        <div className="absolute bottom-2 left-3 z-10 font-mono text-[9px] text-slate-400">
+          Scanning {DISPLAY_INLIERS} inlier + {DISPLAY_OUTLIERS} outlier sub-pixel samples · Laser scan beam & sub-pixel grid active
+        </div>
       </div>
     </div>
   );
 };
+

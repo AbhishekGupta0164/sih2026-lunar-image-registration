@@ -59,12 +59,17 @@ def match_lightglue(
             feats_ref = fe.extract(t_ref)
             matches01 = matcher({"image0": feats_src, "image1": feats_ref})
 
-            feats_src, feats_ref, matches01 = [
-                rb.squeeze(0) for rb in [feats_src, feats_ref, matches01]
-            ]
+            # Unbatch dictionary outputs (batch size = 1)
+            feats_src = {k: v[0] if isinstance(v, torch.Tensor) and v.ndim > 1 else v for k, v in feats_src.items()}
+            feats_ref = {k: v[0] if isinstance(v, torch.Tensor) and v.ndim > 1 else v for k, v in feats_ref.items()}
+            matches01 = {k: v[0] if isinstance(v, torch.Tensor) and v.ndim > 1 else v for k, v in matches01.items()}
+
             matches = matches01["matches"]
-            points0 = feats_src["keypoints"][matches[..., 0]]
-            points1 = feats_ref["keypoints"][matches[..., 1]]
+            if len(matches) < 4:
+                return match_sift(img_src, img_ref)
+
+            points0 = feats_src["keypoints"][matches[:, 0]]
+            points1 = feats_ref["keypoints"][matches[:, 1]]
             scores = matches01["scores"]
 
             return (
