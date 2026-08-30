@@ -341,6 +341,17 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const dpr = Math.max(window.devicePixelRatio || 1, 2);
+    if (canvas.width !== Math.round(CW * dpr) || canvas.height !== Math.round(CH * dpr)) {
+      canvas.width = Math.round(CW * dpr);
+      canvas.height = Math.round(CH * dpr);
+    }
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     const corrs  = corrsRef.current;
     const progs  = progRef.current;
     const hovI   = hovRef.current;
@@ -383,7 +394,7 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     // ── Fractional Sub-Pixel Grid Mesh Overlay ──────────────────────────────
     if (showMesh) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(111, 246, 255, 0.04)';
+      ctx.strokeStyle = 'rgba(111, 246, 255, 0.05)';
       ctx.lineWidth = 0.5;
       const step = 20; // 20px sub-pixel sampling grid step
       for (let x = pAx; x <= pAx + panelW; x += step) {
@@ -402,7 +413,7 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     // Panel borders
     const drawBorder = (ox: number, oy: number, w: number, h: number, col: string) => {
       ctx.save();
-      ctx.shadowColor = col; ctx.shadowBlur = 8;
+      ctx.shadowColor = col; ctx.shadowBlur = 4;
       ctx.strokeStyle = col; ctx.lineWidth  = 1.5;
       ctx.beginPath(); ctx.roundRect(ox, oy, w, h, 6); ctx.stroke();
       ctx.restore();
@@ -410,16 +421,15 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     drawBorder(pAx, pAy, panelW, panelH, 'rgba(111,246,255,0.5)');
     drawBorder(pBx, pAy, panelW, panelH, 'rgba(62,230,160,0.5)');
 
-    // Header labels
-    ctx.font = 'bold 11px "SF Mono", monospace';
-    ctx.letterSpacing = '0.1em';
+    // Header labels (Razor Sharp Text)
+    ctx.shadowBlur = 0;
+    ctx.font = '700 11px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.letterSpacing = '0.08em';
 
-    ctx.shadowColor = 'rgba(111,246,255,0.6)'; ctx.shadowBlur = 6;
-    ctx.fillStyle   = 'rgba(111,246,255,0.9)';
+    ctx.fillStyle = '#6ff6ff';
     ctx.fillText('SOURCE  (MOVING)', pAx + 10, HEADER - 12);
 
-    ctx.shadowColor = 'rgba(62,230,160,0.6)'; ctx.shadowBlur = 6;
-    ctx.fillStyle   = 'rgba(62,230,160,0.9)';
+    ctx.fillStyle = '#3ee6a0';
     ctx.fillText('REFERENCE  (FIXED)', pBx + 10, HEADER - 12);
 
     // Scanner method badge
@@ -427,12 +437,10 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
       : subpixelMethod === 'ecc' ? 'METHOD: ECC CORRELATION'
       : 'METHOD: PHASE FFT SHIFT';
     const tag = `[ ${methodTag} ]  ← ${matcherName.toUpperCase()}`;
-    ctx.shadowBlur  = 4;
-    ctx.shadowColor = 'rgba(169,220,255,0.5)';
-    ctx.fillStyle   = 'rgba(169,220,255,0.9)';
-    ctx.font        = '600 10px monospace';
+    ctx.fillStyle = '#a9dcff';
+    ctx.font = '600 10.5px ui-sans-serif, system-ui, monospace';
     ctx.fillText(tag, CW - ctx.measureText(tag).width - 10, HEADER - 12);
-    ctx.shadowBlur = 0; ctx.letterSpacing = '';
+    ctx.letterSpacing = '';
 
     // ── Correspondences ──────────────────────────────────────────────────────
     const anyHovered = hovI !== null;
