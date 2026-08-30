@@ -332,7 +332,7 @@ export const LandingPage: React.FC = () => {
                   ALIGN<span className="sl-stroke">THE MOON.</span>
                 </h1>
                 <p>
-                  <b style={{ color: 'var(--sl-text)' }}>SELENE-MATCH</b> aligns
+                  <b style={{ color: '#f8fafc' }}>SELENE-MATCH</b> aligns
                   Chandrayaan-2 OHRC, TMC-2 and IIRS imagery with LRO NAC/WAC reference
                   data — across radically different resolution, illumination, and terrain
                   conditions.
@@ -353,7 +353,7 @@ export const LandingPage: React.FC = () => {
                     MODE <b style={{ color: 'var(--sl-blue)' }}>AUTOMATIC</b>
                   </span>
                   <span>
-                    GSD RANGE <b style={{ color: 'var(--sl-text)' }}>0.25m — 80m</b>
+                    GSD RANGE <b style={{ color: '#cbd5e1' }}>0.25m — 80m</b>
                   </span>
                 </div>
               </div>

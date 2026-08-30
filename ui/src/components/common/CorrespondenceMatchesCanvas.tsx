@@ -66,10 +66,16 @@ function buildCorrespondences(
     by = Math.max(0.04, Math.min(0.96, by));
 
     // Score & hue
-    const noise = rand() * 0.12;
-    const score = isInlier
-      ? Math.max(0.55, 0.76 + noise)
-      : Math.max(0.05, 0.08 + rand() * 0.22);
+    let score: number;
+    if (isInlier) {
+      // Distribute inliers across all three tiers so all colors are visible
+      const r = rand();
+      if (r > 0.6) score = 0.84 + rand() * 0.12;       // 40% Strong [0.84 - 0.96]
+      else if (r > 0.2) score = 0.69 + rand() * 0.13;  // 40% Good   [0.69 - 0.82]
+      else score = 0.56 + rand() * 0.11;               // 20% Weak   [0.56 - 0.67]
+    } else {
+      score = 0.05 + rand() * 0.25;
+    }
 
     // ── 3-tier colour system ─────────────────────────────────────────────
     // STRONG  inliers (score ≥ 0.83) → cyan        hue ≈ 185
@@ -79,8 +85,8 @@ function buildCorrespondences(
     // FAR     outliers               → crimson-red  hue ≈ 0/355
     let hue: number;
     if (isInlier) {
-      // Map score [0.55 → 0.88+] to hue [65 → 195] — wide, clearly distinct
-      const t = Math.max(0, Math.min(1, (score - 0.55) / 0.33));
+      // Map score [0.55 → 0.96] to hue [65 → 195] — wide, clearly distinct
+      const t = Math.max(0, Math.min(1, (score - 0.55) / 0.41));
       hue = 65 + t * 130; // 65 (yellow-green) → 195 (cyan)
     } else {
       // Two sub-types of outlier: close miss vs wild miss

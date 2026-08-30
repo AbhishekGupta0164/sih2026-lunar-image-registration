@@ -249,15 +249,27 @@
   padding: 14px 28px;
   font-size: 13px;
   font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+}
+.sl-primary:hover {
+  transform: translateY(-2px);
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 .sl-secondary {
   padding: 13px 28px;
-  background: transparent;
-  border: 1px solid rgba(200, 230, 250, 0.23);
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.25);
   font-size: 13px;
+  color: #cbd5e1;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 .sl-secondary:hover {
-  border-color: var(--sl-cyan);
+  border-color: rgba(111, 246, 255, 0.4);
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.6);
 }
 
 .sl-moon {
@@ -269,8 +281,15 @@
   width: min(105vw, 1200px);
   height: min(105vw, 1200px);
   border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 -30px 140px rgba(57, 140, 230, 0.24), 0 0 0 1px rgba(120, 180, 255, 0.1);
+  overflow: visible;
+  /* Atmospheric multi-layer corona */
+  box-shadow: 
+    inset 0 30px 70px rgba(255, 255, 255, 0.3),
+    0 -30px 80px rgba(111, 246, 255, 0.42),
+    0 -10px 140px rgba(100, 200, 255, 0.28),
+    0 0 200px rgba(57, 168, 255, 0.20),
+    0 30px 120px rgba(30, 80, 160, 0.18),
+    -15px 0 60px rgba(40, 120, 200, 0.12);
   pointer-events: none;
 }
 .sl-moon:before {
@@ -278,23 +297,28 @@
   position: absolute;
   z-index: 2;
   inset: 0;
+  border-radius: 50%;
   background: radial-gradient(ellipse at 50% 0, rgba(2, 6, 14, 0.73), rgba(2, 6, 14, 0.25) 34%, transparent 60%);
 }
 .sl-moon:after {
   content: "";
   position: absolute;
   inset: -8%;
+  border-radius: 50%;
   background: radial-gradient(circle, transparent 50%, rgba(3, 18, 38, 0.22) 73%, rgba(2, 6, 14, 0.8) 100%);
   z-index: 3;
 }
 .sl-moon-surface {
   position: absolute;
   inset: 0;
+  border-radius: 50%;
   background-image: url('/assets/selene_match_moon.png');
   background-size: cover;
   background-position: center 42%;
   filter: contrast(1.12) brightness(0.82);
   transform: scale(1.05);
+  /* Clip the image to the circle without clipping the parent's box-shadow */
+  clip-path: circle(50% at 50% 50%);
 }
 
 .sl-main {
@@ -362,8 +386,8 @@
 .sl-stroke {
   display: block;
   color: transparent;
-  -webkit-text-stroke: 1.5px rgba(111, 246, 255, 0.8);
-  filter: drop-shadow(0 0 25px rgba(111, 246, 255, 0.28));
+  -webkit-text-stroke: 1.5px rgba(111, 246, 255, 0.6);
+  margin-top: 4px;
 }
 .sl-hero p {
   max-width: 570px;
@@ -371,6 +395,7 @@
   color: #8fb2c8;
   font-size: 15px;
   line-height: 1.8;
+  letter-spacing: 0.01em;
 }
 .sl-actions {
   display: flex;

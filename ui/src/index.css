@@ -424,32 +424,47 @@ button {
 .hero-title-centered .title-solid {
   display: block;
   font-size: clamp(68px, 10.5vw, 136px);
-  color: #ffffff;
-  text-shadow: 0 0 50px rgba(255, 255, 255, 0.15);
+  /* Warm white → ice-blue gradient so the title has depth */
+  background: linear-gradient(160deg, #ffffff 30%, #c8e8ff 70%, #7fd4ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 28px rgba(140, 210, 255, 0.55))
+           drop-shadow(0 0 70px rgba(111, 246, 255, 0.22));
 }
 
 .hero-title-centered .title-stroke {
   display: block;
   font-size: clamp(68px, 10.5vw, 136px);
   color: transparent;
-  -webkit-text-stroke: 1.8px rgba(111, 246, 255, 0.85);
-  text-shadow: 0 0 35px rgba(111, 246, 255, 0.35);
-  margin-top: 6px;
+  /* Thicker, brighter stroke + inner fill hint */
+  -webkit-text-stroke: 2px rgba(111, 246, 255, 1);
+  text-shadow:
+    0 0 30px rgba(111, 246, 255, 0.65),
+    0 0 80px rgba(57, 168, 255, 0.35),
+    0 0 140px rgba(57, 168, 255, 0.18);
+  margin-top: 4px;
 }
 
 /* Subtitle paragraph */
 .hero-desc-centered {
   margin: 28px auto 0;
   max-width: 660px;
-  color: #94a3b8;
-  line-height: 1.75;
-  font-size: 14.5px;
+  /* Upgraded: brighter, slightly warm white for better readability */
+  color: #b8cfe0;
+  line-height: 1.8;
+  font-size: 15px;
   font-weight: 400;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
 }
 
 .hero-desc-centered b {
-  color: #e2e8f0;
-  font-weight: 600;
+  /* SELENE-MATCH brand name — vivid cyan-white glow */
+  color: #e8f6ff;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(111, 246, 255, 0.45);
 }
 
 /* Action Buttons */
@@ -463,42 +478,51 @@ button {
 }
 
 .btn-centered-primary {
-  background: #ffffff;
-  color: #020617;
-  padding: 14px 28px;
+  /* Cyan-glow primary: not plain white — feels premium */
+  background: linear-gradient(135deg, #e8f6ff 0%, #c8e8ff 100%);
+  color: #040d1a;
+  padding: 14px 30px;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 12.5px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   transition: all 0.3s ease;
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 0 28px rgba(111, 246, 255, 0.35),
+    0 4px 20px rgba(0, 0, 0, 0.3);
   border: 0;
 }
 
 .btn-centered-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 45px rgba(255, 255, 255, 0.45);
-  background: #f8fafc;
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 50px rgba(111, 246, 255, 0.55),
+    0 8px 30px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #ffffff 0%, #d8f0ff 100%);
 }
 
 .btn-centered-ghost {
-  background: rgba(15, 23, 42, 0.6);
-  color: #cbd5e1;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 14px 28px;
+  background: rgba(8, 18, 35, 0.55);
+  /* Brighter text — was #cbd5e1 (dull), now properly lit */
+  color: #ddeeff;
+  border: 1px solid rgba(111, 246, 255, 0.35);
+  padding: 14px 30px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 12.5px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   transition: all 0.3s ease;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0px rgba(111, 246, 255, 0);
 }
 
 .btn-centered-ghost:hover {
-  border-color: rgba(111, 246, 255, 0.6);
+  border-color: rgba(111, 246, 255, 0.75);
   color: #ffffff;
-  box-shadow: 0 0 24px rgba(111, 246, 255, 0.2);
-  transform: translateY(-2px);
+  box-shadow:
+    0 0 30px rgba(111, 246, 255, 0.25),
+    inset 0 0 20px rgba(111, 246, 255, 0.06);
+  transform: translateY(-3px);
 }
 
 /* Status Line */
@@ -506,40 +530,45 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 38px;
+  gap: 18px;
+  margin-top: 40px;
   font-family: var(--font-m);
   font-size: 9.5px;
-  letter-spacing: 0.16em;
-  color: #64748b;
+  letter-spacing: 0.18em;
+  /* Base label colour — slightly brighter than before */
+  color: #7a90a4;
   flex-wrap: wrap;
 }
 
 .status-line-centered .status-online {
-  color: var(--cyan);
+  /* Full cyan with glow for ONLINE badge */
+  color: #6ff6ff;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-weight: 500;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(111, 246, 255, 0.6);
 }
 
 .status-line-centered .dot-green {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
+  background: #6ff6ff;
+  box-shadow: 0 0 10px #6ff6ff, 0 0 20px rgba(111, 246, 255, 0.5);
   animation: pulse 1.8s ease-in-out infinite;
 }
 
 .status-line-centered .status-val {
-  color: #94a3b8;
-  font-weight: 500;
+  /* Values are now clearly distinct from labels */
+  color: #c0ddf0;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(192, 221, 240, 0.3);
 }
 
 .status-line-centered .sep {
-  color: #334155;
-  opacity: 0.6;
+  color: #2a3d50;
+  opacity: 0.8;
 }
 
 /* CENTERED GIANT MOON HORIZON SPHERE */
@@ -562,13 +591,19 @@ button {
   height: 100%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 25%, #ffffff 0%, #c4cbd0 15%, #768188 40%, #2a3136 75%, #050b11 100%);
+    radial-gradient(circle at 48% 22%, #ffffff 0%, #d0d8de 12%, #848e95 38%, #2e373e 72%, #060d15 100%);
   box-shadow:
-    inset 0 30px 70px rgba(255, 255, 255, 0.45),
-    inset -20px -40px 110px rgba(0, 0, 0, 0.95),
-    0 -25px 90px rgba(111, 246, 255, 0.22),
-    0 0 160px rgba(69, 166, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+    /* Internal lighting — bright polar highlight */
+    inset 0 28px 65px rgba(255, 255, 255, 0.55),
+    inset -18px -38px 100px rgba(0, 0, 0, 0.92),
+    /* Atmospheric corona — multi-layer glow */
+    0 -30px 80px rgba(111, 246, 255, 0.42),
+    0 -10px 140px rgba(100, 200, 255, 0.28),
+    0 0 200px rgba(57, 168, 255, 0.20),
+    0 30px 120px rgba(30, 80, 160, 0.18),
+    /* Terminator edge glow */
+    -15px 0 60px rgba(40, 120, 200, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   position: relative;
 }
 
@@ -577,8 +612,24 @@ button {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 45% 20%, rgba(255, 255, 255, 0.4) 0%, transparent 45%);
+  /* Specular highlight at polar cap */
+  background:
+    radial-gradient(circle at 44% 18%, rgba(255, 255, 255, 0.55) 0%, transparent 38%),
+    radial-gradient(circle at 60% 80%, rgba(57, 168, 255, 0.08) 0%, transparent 50%);
   mix-blend-mode: overlay;
+}
+
+/* Outer corona ring — separate element for the limb glow */
+.moon-horizon-body:after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow:
+    0 0 60px 20px rgba(90, 190, 255, 0.12),
+    0 0 120px 40px rgba(57, 168, 255, 0.07);
+  pointer-events: none;
 }
 
 /* SCROLL CUE FIXED ON BOTTOM RIGHT */
