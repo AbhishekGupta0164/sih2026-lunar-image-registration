@@ -535,7 +535,7 @@ export const CorrespondenceMatchesCanvas: React.FC<Props> = ({
     ctx.font = '8px monospace';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.textAlign = 'center';
-    ctx.fillText('SCORE ↑', 0, 0);
+    ctx.restore();
     ctx.restore();
   }, [CW, CH, GAP, HEADER, panelW, panelH, pAx, pAy, pBx, matcherName, subpixelMethod, isScanning, showMesh]);
 
