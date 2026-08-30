@@ -129,7 +129,7 @@ export const SettingsView: React.FC = () => {
             />
             <button
               onClick={handleTestApi}
-              className="px-5 py-3 rounded-lg text-[11.5px] font-bold font-display tracking-[0.12em] border border-cyan-400/40 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-950/60 flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_12px_rgba(111,246,255,0.15)] whitespace-nowrap"
+              className="px-6 py-3.5 rounded-xl text-[11.5px] font-bold font-display tracking-[0.14em] bg-gradient-to-r from-[#1d64ec] to-[#00b4d8] text-white flex items-center gap-2 transition-all cursor-pointer shadow-[0_0_20px_rgba(29,100,236,0.35)] uppercase border border-cyan-400/40 whitespace-nowrap hover:opacity-95 hover:scale-[1.02]"
             >
               TEST CONNECTION
             </button>
