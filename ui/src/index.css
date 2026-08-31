@@ -3,17 +3,18 @@
 /* ============ SELENE MISSION CONTROL — DESIGN TOKENS ============ */
 :root {
   --bg0: #020409;
-  --bg1: #050b13;
+  --bg1: #050c16;
   --glass: rgba(8, 17, 27, 0.62);
-  --glass-hi: rgba(16, 32, 48, 0.72);
-  --glass2: rgba(6, 13, 21, 0.8);
-  --line: rgba(146, 196, 255, 0.13);
-  --line-strong: rgba(146, 196, 255, 0.30);
+  --glass-hi: rgba(16, 32, 48, 0.75);
+  --glass2: rgba(6, 13, 21, 0.85);
+  --line: rgba(146, 196, 255, 0.10);
+  --line-strong: rgba(146, 196, 255, 0.28);
   --text: #eaf6ff;
   --muted: #8ca3b5;
-  --dim: #587083;
+  --dim: #556f84;
   --cyan: #6ff6ff;
   --blue: #45a6ff;
+  --blue2: #2563eb;
   --ice: #a9dcff;
   --green: #3ee6a0;
   --amber: #ffb65c;
@@ -21,7 +22,16 @@
   --font-d: "Chakra Petch", "Space Grotesk", sans-serif;
   --font-m: "JetBrains Mono", "DM Mono", monospace;
   --font-tech: "Rajdhani", "Chakra Petch", sans-serif;
-  --r: 12px;
+  --r: 14px;
+  --sidebar-w: 248px;
+  --header-h: 56px;
+  --footer-h: 36px;
+
+  /* Shadows */
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgba(190,230,255,0.04) inset;
+  --shadow-glow-cyan: 0 0 24px rgba(111,246,255,0.15);
+  --shadow-glow-blue: 0 0 20px rgba(57,168,255,0.18);
+  --shadow-glow-green: 0 0 18px rgba(62,230,160,0.15);
 }
 
 * {
@@ -1111,6 +1121,14 @@ button {
   80%, 100% { opacity: 0; transform: scale(1.18); }
 }
 
+/* Step connector flow animation */
+@keyframes flowx {
+  from { left: -24px; opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  to { left: 110%; opacity: 0; }
+}
+
 #view-home .gate-link {
   width: 34px;
   height: 1px;
@@ -1625,17 +1643,31 @@ button {
 
 /* ============ WORKBENCH APP SKIN ============ */
 #view-app .card {
-  background: linear-gradient(180deg, rgba(13, 25, 38, 0.72), rgba(7, 14, 23, 0.78));
+  background: linear-gradient(160deg, rgba(12, 24, 38, 0.75) 0%, rgba(6, 13, 22, 0.82) 100%);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 1px 0 rgba(190, 230, 255, 0.04) inset, 0 14px 40px rgba(0, 0, 0, 0.35);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  border-radius: var(--r);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#view-app .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(146,196,255,0.15), transparent);
+  pointer-events: none;
 }
 
 #view-app .card:hover {
-  border-color: var(--line-strong);
+  border-color: rgba(146,196,255,0.22);
+  box-shadow: var(--shadow-card), 0 0 30px rgba(0,0,0,0.15);
 }
 
 #view-app .panel {
@@ -1726,27 +1758,31 @@ input[type="checkbox"] {
 
 /* ============ SIDEBAR ============ */
 #view-app #main-sidebar {
-  width: 256px;
-  background: linear-gradient(180deg, rgba(6, 13, 21, 0.9), rgba(4, 9, 15, 0.92));
+  width: var(--sidebar-w);
+  background: linear-gradient(180deg, rgba(5, 11, 20, 0.96) 0%, rgba(3, 8, 15, 0.98) 100%);
   border-right: 1px solid var(--line);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: width 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 1px 0 0 rgba(146,196,255,0.04);
 }
 
 #view-app .sidebar-collapsed {
-  width: 64px !important;
+  width: 60px !important;
 }
 
 #view-app .sidebar-collapsed .nav-text,
 #view-app .sidebar-collapsed .logo-text,
-#view-app .sidebar-collapsed .project-info-panel,
-#view-app .sidebar-collapsed .nav-section-label {
+#view-app .sidebar-collapsed .project-info-panel {
   display: none;
 }
 
 #view-app .sidebar-collapsed .nav-item {
   justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 4px;
+  margin-right: 4px;
 }
 
 #view-app .sidebar-collapsed .logo-container {
@@ -1794,48 +1830,33 @@ input[type="checkbox"] {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9.5px 12px;
-  margin: 1px 0;
-  border-radius: 9px;
+  gap: 10px;
+  padding: 9px 12px;
+  margin: 1px 6px;
+  border-radius: 12px;
   font-size: 12.5px;
-  color: #9db2c4;
+  color: #7a96b0;
   border: 1px solid transparent;
-  transition: 0.22s ease;
+  transition: all 0.18s ease;
   cursor: pointer;
   letter-spacing: 0.02em;
 }
 
-#view-app .nav-item:before {
-  content: "";
-  position: absolute;
-  left: -13px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2.5px;
-  height: 0;
-  border-radius: 3px;
-  background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan);
-  transition: height 0.25s;
-}
-
 #view-app .nav-item:hover {
-  background: rgba(111, 246, 255, 0.05);
-  color: #eaf6ff;
+  background: rgba(255,255,255,0.04);
+  color: #d8edf8;
+  border-color: rgba(146,196,255,0.07);
 }
 
 #view-app .nav-item.nav-active {
-  background: linear-gradient(90deg, rgba(69, 166, 255, 0.16), rgba(111, 246, 255, 0.05));
+  background: linear-gradient(90deg, rgba(69,166,255,0.13) 0%, rgba(111,246,255,0.05) 100%);
   color: #fff;
-  border-color: rgba(111, 246, 255, 0.18);
+  border-color: rgba(111,246,255,0.20);
+  box-shadow: 0 0 16px rgba(111,246,255,0.06);
 }
 
-#view-app .nav-item.nav-active:before {
-  height: 60%;
-}
-
-#view-app .nav-item.nav-active i {
+#view-app .nav-item.nav-active i,
+#view-app .nav-item.nav-active svg {
   color: var(--cyan);
 }
 
@@ -1846,11 +1867,12 @@ input[type="checkbox"] {
 
 /* ============ HEADER ============ */
 #view-app .app-header {
-  background: linear-gradient(180deg, rgba(8, 22, 38, 0.92) 0%, rgba(3, 11, 22, 0.98) 100%);
-  border-bottom: 1px solid rgba(111, 246, 255, 0.35);
-  box-shadow: 0 4px 20px rgba(29, 100, 236, 0.2), inset 0 -1px 0 rgba(111, 246, 255, 0.15);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  height: var(--header-h);
+  background: linear-gradient(180deg, rgba(6, 16, 28, 0.97) 0%, rgba(3, 10, 20, 0.99) 100%);
+  border-bottom: 1px solid rgba(146,196,255,0.09);
+  box-shadow: 0 1px 0 rgba(111,246,255,0.05), 0 6px 28px rgba(0,0,0,0.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 #view-app .clock-chip {
@@ -2210,7 +2232,7 @@ input[type="checkbox"] {
 /* misc */
 #view-app .view-section {
   display: none;
-  animation: viewin 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+  animation: viewin 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 #view-app .view-section.active {
@@ -2218,8 +2240,24 @@ input[type="checkbox"] {
 }
 
 @keyframes viewin {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
+}
+
+/* LED pulse */
+.led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: pulse 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+.led.amber {
+  background: var(--amber);
+  box-shadow: 0 0 8px var(--amber);
 }
 
 #view-app .disabled-panel {
