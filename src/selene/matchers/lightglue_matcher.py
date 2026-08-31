@@ -80,7 +80,7 @@ def match_lightglue(
                 "lightglue"
             )
 
-    except Exception as e:
+    except (ImportError, RuntimeError) as e:
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"LightGlue unavailable ({e}); falling back to SIFT")
