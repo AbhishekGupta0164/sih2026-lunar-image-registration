@@ -129,3 +129,53 @@ def plot_coverage_heatmap(
     plt.savefig(str(out_path), bbox_inches="tight")
     plt.close(fig)
     return out_path
+
+
+def plot_residual_heatmap(
+    pts_src: np.ndarray,
+    pts_ref: np.ndarray,
+    out_path: str | Path,
+    image_shape: tuple[int, int] = (1024, 1024),
+    grid_cells: int = 16,
+) -> Path:
+    """Plot a spatial heatmap of match residuals."""
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    h, w = image_shape
+    fig, ax = plt.subplots(figsize=(8, 8), dpi=150)
+    
+    # Configure axes with dark background
+    ax.set_facecolor('#050c14')
+    fig.patch.set_facecolor('#050c14')
+    
+    if len(pts_src) > 0:
+        dx = pts_ref[:, 0] - pts_src[:, 0]
+        dy = pts_ref[:, 1] - pts_src[:, 1]
+        residuals = np.sqrt(dx**2 + dy**2)
+        
+        hb = ax.hexbin(
+            pts_src[:, 0], pts_src[:, 1], 
+            C=residuals, 
+            gridsize=grid_cells, 
+            cmap='turbo', 
+            reduce_C_function=np.mean,
+            alpha=0.85
+        )
+        cb = plt.colorbar(hb, ax=ax, label="Mean Residual (px)")
+        cb.ax.yaxis.set_tick_params(color='white')
+        cb.outline.set_edgecolor('white')
+        plt.setp(cb.ax.yaxis.get_majorticklabels(), color='white')
+        cb.set_label("Mean Residual (px)", color='white')
+
+    ax.set_xlim(0, w)
+    ax.set_ylim(h, 0)
+    ax.set_title("Spatial Residual Heatmap", color='white')
+    ax.tick_params(colors='white')
+    for spine in ax.spines.values():
+        spine.set_edgecolor('white')
+        
+    plt.tight_layout()
+    plt.savefig(str(out_path), bbox_inches="tight", facecolor=fig.get_facecolor(), transparent=False)
+    plt.close(fig)
+    return out_path

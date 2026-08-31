@@ -202,6 +202,7 @@ export class SeleneApiService {
         method:   `${this.getMatcherLabel(resolvedMatcher)} + IC-LK ECC Sub-Pixel`,
         matcherUsed: resolvedMatcher,
         jobId,
+        residualHeatmapUrl: status.residual_heatmap_url,
       };
       return { results, jobId };
     }

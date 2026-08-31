@@ -88,6 +88,7 @@ def run_job_bg(job_id: str, src_path: str, ref_path: str, config_dict: dict | No
             checkerboard_url=_product_url(job_id, "plot_checkerboard.png"),
             quiver_url=_product_url(job_id, "plot_quiver.png"),
             coverage_url=_product_url(job_id, "plot_coverage.png"),
+            residual_heatmap_url=_product_url(job_id, "plot_residual_heatmap.png"),
         )
         job_log_append(job_id, "SUCCESS", f"Pipeline complete. RMSE={res['metrics'].get('rmse_px','?')} px")
 
@@ -112,6 +113,7 @@ def init_job(job_id: str) -> dict:
         "checkerboard_url": None,
         "quiver_url": None,
         "coverage_url": None,
+        "residual_heatmap_url": None,
     }
 
 
@@ -163,6 +165,7 @@ def get_job_status(job_id: str):
                 checkerboard_url=_product_url(job_id, "plot_checkerboard.png"),
                 quiver_url=_product_url(job_id, "plot_quiver.png"),
                 coverage_url=_product_url(job_id, "plot_coverage.png"),
+                residual_heatmap_url=_product_url(job_id, "plot_residual_heatmap.png"),
             )
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
 

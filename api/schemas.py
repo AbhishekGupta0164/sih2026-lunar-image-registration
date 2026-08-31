@@ -30,6 +30,7 @@ class JobStatus(BaseModel):
     checkerboard_url: Optional[str] = None
     quiver_url: Optional[str] = None
     coverage_url: Optional[str] = None
+    residual_heatmap_url: Optional[str] = None
 
 
 class RegisterResponse(BaseModel):
@@ -42,6 +43,7 @@ class RegisterResponse(BaseModel):
     checkerboard_url: str
     quiver_url: str
     coverage_url: str
+    residual_heatmap_url: str
 
 
 class SamplePair(BaseModel):

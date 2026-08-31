@@ -33,7 +33,7 @@ from selene.warp.tps import warp_tps
 from selene.warp.piecewise_affine import piecewise_affine_warp
 from selene.warp.export_geotiff import export_geotiff
 from selene.eval.metrics import compute_metrics, MetricsResult
-from selene.eval.plots import plot_checkerboard, plot_quiver, plot_coverage_heatmap
+from selene.eval.plots import plot_checkerboard, plot_quiver, plot_coverage_heatmap, plot_residual_heatmap
 from selene.eval.report_pdf import generate_pdf_report
 
 
@@ -266,6 +266,7 @@ def run_pipeline(
     p_checker = plot_checkerboard(img_ref, warped, out_path / "plot_checkerboard.png")
     p_quiver = plot_quiver(pts_src_final, pts_ref_final, out_path / "plot_quiver.png", image_shape=ref_shape)
     p_heatmap = plot_coverage_heatmap(pts_ref_final, out_path / "plot_coverage.png", image_shape=ref_shape)
+    p_residual = plot_residual_heatmap(pts_src_final, pts_ref_final, out_path / "plot_residual_heatmap.png", image_shape=ref_shape)
 
     # Deliverable PDF
     pdf_report = generate_pdf_report(
@@ -284,6 +285,7 @@ def run_pipeline(
         "matches_csv": str(matches_csv),
         "metrics": metrics.to_dict(),
         "pdf_report": str(pdf_report),
+        "residual_heatmap": str(p_residual),
     }
 
 

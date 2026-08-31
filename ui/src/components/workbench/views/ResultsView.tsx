@@ -113,6 +113,10 @@ export const ResultsView: React.FC = () => {
   // Wipe shows registered output if available, else the raw source with a notice
   const wipeRightUrl = registeredUrl || srcUrl;
 
+  const residualHeatmapUrl = isReal && results.residualHeatmapUrl
+    ? seleneApi.productUrl(results.residualHeatmapUrl)
+    : null;
+
   // Checkerboard: 8×8 tiles alternating ref/registered
   const checkerCells = Array.from({ length: 64 }, (_, i) => {
     const row = Math.floor(i / 8); const col = i % 8;
@@ -305,14 +309,26 @@ export const ResultsView: React.FC = () => {
 
           {/* ── RESIDUAL HEATMAP TAB ── */}
           {activeTab === 'residual' && (
-            <div className="result-pane h-80">
-              <HeatmapCanvas
-                rmse={results.rmse || 0}
-                opacity={settings.heatmapOpacity || 75}
-                refUrl={refUrl}
-                srcUrl={registeredUrl || srcUrl}
-              />
-              {!isComplete && (
+            <div className="result-pane h-80 relative overflow-hidden bg-slate-950 rounded-xl border border-[rgba(146,196,255,0.16)] flex items-center justify-center">
+              {residualHeatmapUrl ? (
+                <img
+                  src={residualHeatmapUrl}
+                  alt="Residual Heatmap"
+                  className="w-full h-full object-contain"
+                />
+              ) : isComplete ? (
+                <div className="absolute inset-0 w-full h-full">
+                  <HeatmapCanvas
+                    rmse={results.rmse || 0}
+                    opacity={settings.heatmapOpacity || 75}
+                    refUrl={refUrl}
+                    srcUrl={wipeRightUrl}
+                  />
+                  <div className="absolute top-3 left-3 bg-warning/20 text-warning px-2 py-1 rounded text-[9px] font-mono border border-warning/40 backdrop-blur-md">
+                    DEMO MODE (SYNTHETIC HEATMAP)
+                  </div>
+                </div>
+              ) : (
                 <p className="text-[10px] text-warning font-mono mt-2">
                   No pipeline run yet — heatmap will populate after registration completes.
                 </p>

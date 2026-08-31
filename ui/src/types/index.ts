@@ -51,6 +51,7 @@ export interface RegistrationResults {
   matcherUsed: string;
   /** Job ID returned by the backend; undefined in demo/simulation mode */
   jobId?: string;
+  residualHeatmapUrl?: string;
 }
 
 export interface LogEntry {

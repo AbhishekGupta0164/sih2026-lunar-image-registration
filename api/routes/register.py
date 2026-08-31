@@ -86,6 +86,7 @@ async def register_sync(
             "checkerboard_url":       f"/products/{job_id}/plot_checkerboard.png",
             "quiver_url":             f"/products/{job_id}/plot_quiver.png",
             "coverage_url":           f"/products/{job_id}/plot_coverage.png",
+            "residual_heatmap_url":   f"/products/{job_id}/plot_residual_heatmap.png",
         })
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
