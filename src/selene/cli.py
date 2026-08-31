@@ -35,6 +35,7 @@ from selene.warp.export_geotiff import export_geotiff
 from selene.eval.metrics import compute_metrics, MetricsResult
 from selene.eval.plots import plot_checkerboard, plot_quiver, plot_coverage_heatmap, plot_residual_heatmap
 from selene.eval.report_pdf import generate_pdf_report
+from selene.utils.seeding import set_reproducible_seed
 
 
 def load_image_any(path: str | Path) -> tuple[np.ndarray, object | None, object | None]:
@@ -70,6 +71,8 @@ def run_pipeline(
     """Execute end-to-end SELENE-MATCH registration pipeline (Stages 0 - 8)."""
     if config is None:
         config = PipelineConfig()
+    
+    set_reproducible_seed(config.seed if hasattr(config, "seed") else 42)
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -140,7 +143,7 @@ def run_pipeline(
     scores_in = scores[inlier_mask] if len(scores) == len(inlier_mask) else None
 
     # Spatial uniformity sampling with shadow mask exclusion
-    pts_src_gcp, pts_ref_gcp, _ = sample_uniform_gcps(
+    pts_src_gcp, pts_ref_gcp, sel_idx = sample_uniform_gcps(
         pts_src_in,
         pts_ref_in,
         scores=scores_in,
@@ -164,6 +167,32 @@ def run_pipeline(
     )
     pts_src_final = pts_src_refined[valid_lk]
     pts_ref_final = pts_ref_gcp[valid_lk]
+    
+    # --- P2.1 GCP Confidence Score ---
+    scores_gcp = scores_in[sel_idx] if scores_in is not None else np.ones(len(pts_src_gcp))
+    scores_final = scores_gcp[valid_lk]
+    
+    if H_fit is not None and len(pts_src_final) > 0:
+        ones = np.ones((len(pts_src_final), 1))
+        homo_src = np.hstack([pts_src_final, ones])
+        proj = (H_fit @ homo_src.T).T
+        proj_pts = proj[:, :2] / (proj[:, 2:] + 1e-8)
+        residuals = np.linalg.norm(proj_pts - pts_ref_final, axis=1)
+        res_score = np.clip(1.0 - residuals / 5.0, 0, 1.0)
+    else:
+        res_score = np.ones(len(pts_src_final))
+        
+    if shadow_mask_src is not None and np.any(shadow_mask_src > 0) and len(pts_src_final) > 0:
+        dist_transform = cv2.distanceTransform((shadow_mask_src == 0).astype(np.uint8), cv2.DIST_L2, 3)
+        x_idx = np.clip(pts_src_final[:, 0].astype(int), 0, dist_transform.shape[1]-1)
+        y_idx = np.clip(pts_src_final[:, 1].astype(int), 0, dist_transform.shape[0]-1)
+        dists = dist_transform[y_idx, x_idx]
+        dist_score = np.clip(dists / 50.0, 0, 1.0)
+    else:
+        dist_score = np.ones(len(pts_src_final))
+        
+    confidence = (scores_final + res_score + dist_score) / 3.0
+    
     log.info(f"Sub-pixel refinement validated {len(pts_src_final)} GCPs")
 
     # ── Stage 6: Warping & Co-Registration ────────────────────────────────────
@@ -202,9 +231,9 @@ def run_pipeline(
     # Save matches CSV
     matches_csv = out_path / "matches.csv"
     with open(matches_csv, "w") as f:
-        f.write("src_x,src_y,ref_x,ref_y\n")
-        for (sx, sy), (rx, ry) in zip(pts_src_final, pts_ref_final):
-            f.write(f"{sx:.3f},{sy:.3f},{rx:.3f},{ry:.3f}\n")
+        f.write("src_x,src_y,ref_x,ref_y,confidence\n")
+        for (sx, sy), (rx, ry), c in zip(pts_src_final, pts_ref_final, confidence):
+            f.write(f"{sx:.3f},{sy:.3f},{rx:.3f},{ry:.3f},{c:.3f}\n")
 
     # ── Stage 8: Evaluation & Deliverables ────────────────────────────────────
     _notify(0.96, "Stage 8: Generating metrics, plots & PDF report")
@@ -238,13 +267,20 @@ def run_pipeline(
     except Exception:
         pass
 
+    torch_ver = "none"
+    try:
+        import torch
+        torch_ver = torch.__version__
+    except ImportError:
+        pass
+
     provenance = {
         "git_commit": git_commit,
-        "data_source": "synthetic_ground_truth" if H_gt is not None else "lunar_pds_geotiff",
+        "seed": config.seed if hasattr(config, "seed") else 42,
+        "matcher_used": matcher_name,
         "deep_matcher_available": deep_available,
-        "matcher_routed": matcher_name,
-        "matcher_actually_ran": matcher_name,
-        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat() + "Z",
+        "package_versions": {"torch": torch_ver, "opencv": cv2.__version__},
     }
 
     metrics = compute_metrics(
@@ -258,9 +294,13 @@ def run_pipeline(
         provenance=provenance,
     )
 
+    metrics_dict = metrics.to_dict()
+    metrics_dict["mean_confidence"] = float(np.mean(confidence)) if len(confidence) > 0 else 0.0
+    metrics_dict["pct_gcp_confidence_ge_0.6"] = float(np.mean(confidence >= 0.6)) if len(confidence) > 0 else 0.0
+
     metrics_json = out_path / "metrics.json"
     with open(metrics_json, "w") as f:
-        json.dump(metrics.to_dict(), f, indent=2)
+        json.dump(metrics_dict, f, indent=2)
 
     # Verification Plots
     p_checker = plot_checkerboard(img_ref, warped, out_path / "plot_checkerboard.png")

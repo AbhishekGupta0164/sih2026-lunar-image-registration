@@ -67,6 +67,7 @@ from selene.config import PipelineConfig, load_config
 from selene.geometry.pyramid import match_coarse_to_fine_pyramid
 from selene.ingest.pair import Pair
 from selene.matchers.gate import route_and_match
+from selene.utils.seeding import set_reproducible_seed
 
 
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".geotif", ".geotiff", ".bmp")
@@ -133,26 +134,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def set_reproducible_seed(seed: int) -> dict[str, Any]:
-    """Set all project-relevant random seeds without requiring PyTorch."""
-    random.seed(seed)
-    np.random.seed(seed)
-    cv2.setRNGSeed(seed)
-    result: dict[str, Any] = {"seed": seed, "torch_seeded": False, "torch_deterministic": False}
-    try:
-        import torch
-
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
-        # Benchmarking must not silently select non-deterministic cuDNN paths.
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        result["torch_seeded"] = True
-        result["torch_deterministic"] = True
-    except ImportError:
-        pass
-    return result
 
 
 def resolve_device(requested: str, warnings: list[str]) -> str:

@@ -13,7 +13,7 @@ def match_lightglue(
     img_ref: np.ndarray,
     extractor: str = "superpoint",
     device: str = "cpu",
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, str]:
     """Match image pairs using LightGlue neural feature matcher.
 
     Falls back cleanly to SIFT baseline if LightGlue / torch are not installed.
@@ -25,7 +25,7 @@ def match_lightglue(
         device: "cpu" or "cuda".
 
     Returns:
-        (pts_src, pts_ref, scores)
+        (pts_src, pts_ref, scores, matcher_used)
     """
     try:
         import torch
@@ -66,7 +66,8 @@ def match_lightglue(
 
             matches = matches01["matches"]
             if len(matches) < 4:
-                return match_sift(img_src, img_ref)
+                pts_s, pts_r, scores = match_sift(img_src, img_ref)
+                return pts_s, pts_r, scores, "sift_fallback"
 
             points0 = feats_src["keypoints"][matches[:, 0]]
             points1 = feats_ref["keypoints"][matches[:, 1]]
@@ -76,8 +77,13 @@ def match_lightglue(
                 points0.cpu().numpy().astype(np.float32),
                 points1.cpu().numpy().astype(np.float32),
                 scores.cpu().numpy().astype(np.float32),
+                "lightglue"
             )
 
-    except (ImportError, Exception):
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"LightGlue unavailable ({e}); falling back to SIFT")
         # Fallback gracefully to SIFT baseline
-        return match_sift(img_src, img_ref)
+        pts_s, pts_r, scores = match_sift(img_src, img_ref)
+        return pts_s, pts_r, scores, "sift_fallback"

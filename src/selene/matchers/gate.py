@@ -114,11 +114,8 @@ def route_and_match(
         return pts_s, pts_r, scores, "phase_corr"
 
     elif strategy == "lightglue":
-        pts_s, pts_r, scores = match_lightglue(img_src, img_ref, device=device)
-        if len(pts_s) >= 4:
-            return pts_s, pts_r, scores, "lightglue"
-        pts_s, pts_r, scores = match_sift(img_src, img_ref)
-        return pts_s, pts_r, scores, "sift_fallback"
+        pts_s, pts_r, scores, actual_matcher = match_lightglue(img_src, img_ref, device=device)
+        return pts_s, pts_r, scores, actual_matcher
 
     else:  # sift baseline
         pts_s, pts_r, scores = match_sift(img_src, img_ref)

@@ -17,6 +17,7 @@ class PipelineConfig(BaseModel):
     # ── Paths ──────────────────────────────────────────────────────────────────
     products_dir: Path = Path("products")
     data_dir: Path = Path("data")
+    seed: int = 42
 
     # ── Uniformity / GCP sampling (Stage 5–6) ─────────────────────────────────
     grid_cells: int = 8                      # NxN grid for spatial coverage check

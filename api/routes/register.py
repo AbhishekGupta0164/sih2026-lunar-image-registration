@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 
 from selene.cli import run_pipeline
 from selene.config import PipelineConfig
+from selene.ingest.validator import validate_pair
 from api.routes.jobs import JOBS_DB, init_job, run_job_bg, job_log_append
 
 router = APIRouter()
@@ -61,6 +62,10 @@ async def register_sync(
 
     ref_save, mov_save = _save_uploads(job_dir, ref_image, mov_image)
 
+    val_res = validate_pair(str(ref_save), str(mov_save))
+    if not val_res.valid:
+        raise HTTPException(400, {"code": val_res.code, "message": val_res.message})
+
     # Parse optional config overrides
     cfg_kwargs: dict = {}
     if config_json:
@@ -68,28 +73,25 @@ async def register_sync(
         cfg_kwargs = json.loads(config_json)
     cfg = PipelineConfig(**cfg_kwargs)
 
-    try:
-        res = run_pipeline(
-            src_path=str(mov_save),
-            ref_path=str(ref_save),
-            out_dir=job_dir,
-            config=cfg,
-            job_id=job_id,
-        )
-        return JSONResponse({
-            "job_id": job_id,
-            "status": "success",
-            "metrics": res["metrics"],
-            "registered_geotiff_url": f"/products/{job_id}/registered.tif",
-            "matches_csv_url":        f"/products/{job_id}/matches.csv",
-            "report_pdf_url":         f"/products/{job_id}/registration_report.pdf",
-            "checkerboard_url":       f"/products/{job_id}/plot_checkerboard.png",
-            "quiver_url":             f"/products/{job_id}/plot_quiver.png",
-            "coverage_url":           f"/products/{job_id}/plot_coverage.png",
-            "residual_heatmap_url":   f"/products/{job_id}/plot_residual_heatmap.png",
-        })
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    res = run_pipeline(
+        src_path=str(mov_save),
+        ref_path=str(ref_save),
+        out_dir=job_dir,
+        config=cfg,
+        job_id=job_id,
+    )
+    return JSONResponse({
+        "job_id": job_id,
+        "status": "success",
+        "metrics": res["metrics"],
+        "registered_geotiff_url": f"/products/{job_id}/registered.tif",
+        "matches_csv_url":        f"/products/{job_id}/matches.csv",
+        "report_pdf_url":         f"/products/{job_id}/registration_report.pdf",
+        "checkerboard_url":       f"/products/{job_id}/plot_checkerboard.png",
+        "quiver_url":             f"/products/{job_id}/plot_quiver.png",
+        "coverage_url":           f"/products/{job_id}/plot_coverage.png",
+        "residual_heatmap_url":   f"/products/{job_id}/plot_residual_heatmap.png",
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +114,10 @@ async def register_async(
     job_dir = Path("products") / job_id
 
     ref_save, mov_save = _save_uploads(job_dir, ref_image, mov_image)
+
+    val_res = validate_pair(str(ref_save), str(mov_save))
+    if not val_res.valid:
+        raise HTTPException(400, {"code": val_res.code, "message": val_res.message})
 
     cfg_kwargs: dict = {}
     if config_json:

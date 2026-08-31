@@ -114,7 +114,8 @@ def generate_pdf_report(
 
         calc_data = [
             ["Metric Parameter", "Pixel-Space Value", "Metre-Space Value", "Technical Description / Formula"],
-            ["Fit RMSE (Training GCPs)", f"{metrics.rmse_px:.4f} px", f"{metrics.rmse_m:.4f} m", "Root Mean Square Error across training GCPs"],
+            ["Self-consistency RMSE (H_fit)", f"{metrics.rmse_px:.4f} px", f"{metrics.rmse_m:.4f} m", "Root Mean Square Error across training GCPs"],
+            ["Ground-truth RMSE (H_gt)", f"{metrics.rmse_vs_gt_px:.4f} px" if metrics.rmse_vs_gt_px is not None else "N/A", f"{metrics.rmse_vs_gt_m:.4f} m" if metrics.rmse_vs_gt_m is not None else "N/A", "Independent absolute accuracy against known ground truth"],
             ["Val RMSE (80/20 Holdout)", f"{metrics.rmse_val_px:.4f} px", f"{metrics.rmse_val_m:.4f} m", "Independent 80/20 holdout cross-validation RMSE"],
             ["CE90 Circular Error", f"{metrics.ce90_px:.4f} px", f"{metrics.ce90_m:.4f} m", "90th percentile circular error radius"],
             ["Mean Residual Error", f"{metrics.mean_residual_px:.4f} px", f"{(metrics.mean_residual_px * metrics.gsd_m):.4f} m", "Average absolute GCP displacement magnitude"],
@@ -209,9 +210,11 @@ def generate_pdf_report(
                     elements.append(Spacer(1, 6))
 
         elements.append(Spacer(1, 10))
+        prov = metrics.provenance or {}
         elements.append(
             Paragraph(
-                "<i>Report generated automatically by SELENE-MATCH Core Pipeline Engine. Certified for ISRO Lunar Science Operations.</i>",
+                f"<i>Report generated automatically by SELENE-MATCH Core Pipeline Engine. Certified for ISRO Lunar Science Operations.</i><br/>"
+                f"<i>Provenance: Seed={prov.get('seed', 'N/A')} | Matcher={prov.get('matcher_used', 'N/A')} | Commit={prov.get('git_commit', 'N/A')[:8]}</i>",
                 subtitle_style,
             )
         )
