@@ -55,6 +55,46 @@ def generate_lunar_procedural_surface(height: int = 1024, width: int = 1024, see
     return img
 
 
+def apply_directional_relighting(
+    img: np.ndarray,
+    sun_azimuth_deg: float = 284.3,
+    sun_elevation_deg: float = 32.1,
+    albedo_weight: float = 0.55,
+    relief_strength: float = 1.8,
+) -> np.ndarray:
+    """
+    Simulates physical directional solar illumination using Lambertian shading
+    derived from image surface gradients and solar vector.
+    """
+    az_rad = np.radians(sun_azimuth_deg)
+    el_rad = np.radians(sun_elevation_deg)
+
+    # Sun direction vector
+    lx = np.cos(el_rad) * np.cos(az_rad)
+    ly = np.cos(el_rad) * np.sin(az_rad)
+    lz = np.sin(el_rad)
+
+    # Pseudo-heightmap from surface intensity
+    img_f = img.astype(np.float32) / 255.0
+    blurred = cv2.GaussianBlur(img_f, (5, 5), 1.0)
+
+    # Surface normal from image gradients
+    gy, gx = np.gradient(blurred)
+    gx = -gx * relief_strength
+    gy = -gy * relief_strength
+    gz = np.ones_like(gx)
+
+    norm = np.sqrt(gx**2 + gy**2 + gz**2) + 1e-6
+    nx, ny, nz = gx / norm, gy / norm, gz / norm
+
+    # Lambertian shading term N . L
+    cos_theta = np.clip(nx * lx + ny * ly + nz * lz, 0.0, 1.0)
+
+    # Combine intrinsic albedo and solar directional shading
+    relit = (albedo_weight * img_f + (1.0 - albedo_weight) * cos_theta)
+    return np.clip(relit * 255.0, 0, 255).astype(np.uint8)
+
+
 def create_synthetic_pair(
     input_image_path: str = None,
     output_dir: str = "data_generation/output",
@@ -63,7 +103,12 @@ def create_synthetic_pair(
     scale: float = 0.92,
     tx: float = 35.0,
     ty: float = 20.0,
-    gamma: float = 0.7
+    gamma: float = 0.7,
+    ref_sun_az: float = 142.1,
+    ref_sun_el: float = 34.5,
+    mov_sun_az: float = 284.3,
+    mov_sun_el: float = 32.1,
+    apply_relighting: bool = True,
 ) -> dict:
     """
     Generates reference.png, synthetic_target.png, and ground_truth.json.
@@ -105,6 +150,19 @@ def create_synthetic_pair(
     cv2.imwrite(ref_path, reference)
     print(f"[SUCCESS] Saved reference image: {ref_path}")
     
+    # Save reference metadata sidecar
+    ref_meta = {
+        "sensor_id": "LRO_NAC",
+        "sun_azimuth_deg": ref_sun_az,
+        "sun_elevation_deg": ref_sun_el,
+        "gsd_m": 0.50,
+        "MAP_SCALE": 0.50,
+        "SOLAR_AZIMUTH": ref_sun_az,
+        "SOLAR_ELEVATION": ref_sun_el,
+    }
+    with open(os.path.join(output_dir, "reference.json"), "w") as f:
+        json.dump(ref_meta, f, indent=2)
+
     # Step 3: Apply Geometric Transformation (Rotation, Scale, Translation)
     h, w = reference.shape
     center = (w / 2.0, h / 2.0)
@@ -133,8 +191,17 @@ def create_synthetic_pair(
         borderMode=cv2.BORDER_REFLECT
     )
     
-    # Step 4: Apply Illumination Variation (Gamma Correction)
-    synthetic_float = synthetic_geo.astype(np.float32)
+    # Step 4: Apply Directional Solar Relighting and Photometric Variation
+    if apply_relighting:
+        synthetic_relit = apply_directional_relighting(
+            synthetic_geo,
+            sun_azimuth_deg=mov_sun_az,
+            sun_elevation_deg=mov_sun_el,
+        )
+    else:
+        synthetic_relit = synthetic_geo
+
+    synthetic_float = synthetic_relit.astype(np.float32)
     synthetic_norm = np.clip(synthetic_float / 255.0, 0.0, 1.0)
     synthetic_gamma = (synthetic_norm ** gamma) * 255.0
     synthetic_target = np.clip(synthetic_gamma, 0, 255).astype(np.uint8)
@@ -143,6 +210,19 @@ def create_synthetic_pair(
     target_path = os.path.join(output_dir, "synthetic_target.png")
     cv2.imwrite(target_path, synthetic_target)
     print(f"[SUCCESS] Saved synthetic target image: {target_path}")
+
+    # Save moving metadata sidecar
+    mov_meta = {
+        "sensor_id": "OHRC",
+        "sun_azimuth_deg": mov_sun_az,
+        "sun_elevation_deg": mov_sun_el,
+        "gsd_m": 0.25,
+        "MAP_SCALE": 0.25,
+        "SOLAR_AZIMUTH": mov_sun_az,
+        "SOLAR_ELEVATION": mov_sun_el,
+    }
+    with open(os.path.join(output_dir, "synthetic_target.json"), "w") as f:
+        json.dump(mov_meta, f, indent=2)
     
     # Step 5: Save Ground Truth Transformation JSON
     gt_data = {
@@ -157,7 +237,12 @@ def create_synthetic_pair(
             "scale": scale,
             "translation_x_px": tx,
             "translation_y_px": ty,
-            "gamma_illumination": gamma
+            "gamma_illumination": gamma,
+            "ref_sun_azimuth_deg": ref_sun_az,
+            "ref_sun_elevation_deg": ref_sun_el,
+            "mov_sun_azimuth_deg": mov_sun_az,
+            "mov_sun_elevation_deg": mov_sun_el,
+            "delta_sun_azimuth_deg": abs(ref_sun_az - mov_sun_az),
         },
         "affine_matrix_2x3": M.tolist(),
         "homography_matrix_3x3": H_gt.tolist(),
