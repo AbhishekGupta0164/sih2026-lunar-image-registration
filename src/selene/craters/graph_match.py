@@ -35,14 +35,19 @@ def build_crater_graph(
     tree = KDTree(centers)
     dists, indices = tree.query(centers, k=k_eff)
 
-    # Invariant features: relative distance ratios and radius ratios to neighbours
+    # Invariant features: relative distance ratios and radius ratios to neighbours (padded to fixed length k)
     descriptors = []
     for i in range(len(craters)):
         nbr_idx = indices[i, 1:]
         nbr_dists = dists[i, 1:]
         r_ratios = radii[nbr_idx] / (radii[i] + 1e-4)
         d_ratios = nbr_dists / (radii[i] + 1e-4)
-        feat = np.concatenate([np.sort(r_ratios), np.sort(d_ratios)])
+        r_sorted = np.sort(r_ratios)
+        d_sorted = np.sort(d_ratios)
+        if len(r_sorted) < k:
+            r_sorted = np.pad(r_sorted, (0, k - len(r_sorted)), constant_values=0.0)
+            d_sorted = np.pad(d_sorted, (0, k - len(d_sorted)), constant_values=0.0)
+        feat = np.concatenate([r_sorted[:k], d_sorted[:k]])
         descriptors.append(feat)
 
     return {

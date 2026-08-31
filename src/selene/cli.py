@@ -174,7 +174,13 @@ def run_pipeline(
         warped = piecewise_affine_warp(img_src, pts_src_final, pts_ref_final, output_shape=ref_shape)
     else:
         # Fallback to homography warp
-        H_final, _ = cv2.findHomography(pts_src_final, pts_ref_final, cv2.RANSAC)
+        if len(pts_src_final) >= 4:
+            H_final, _ = cv2.findHomography(pts_src_final, pts_ref_final, cv2.RANSAC)
+        elif H_fit is not None:
+            H_final = H_fit
+        else:
+            H_final = None
+
         if H_final is not None:
             warped = cv2.warpPerspective(img_src, H_final, (ref_shape[1], ref_shape[0]))
         else:

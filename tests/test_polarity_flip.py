@@ -27,3 +27,33 @@ def test_polarity_flip_crater_structure_preservation():
     sift_src, sift_dst, _ = match_sift(surf1, surf2)
 
     assert len(pts1) >= 4 or len(craters1) >= 4, "Crater structure preserved under polarity flip"
+
+
+def test_crater_graph_unequal_counts():
+    """Verify crater graph matching handles unequal crater counts without dimension mismatch."""
+    from selene.craters.detector import Crater
+    craters_src = [
+        Crater(cx=100.0, cy=100.0, r=20.0, score=2.0),
+        Crater(cx=200.0, cy=150.0, r=25.0, score=2.5),
+        Crater(cx=150.0, cy=300.0, r=30.0, score=3.0),
+        Crater(cx=400.0, cy=400.0, r=35.0, score=3.5),
+    ]
+    craters_ref = [
+        Crater(cx=105.0, cy=102.0, r=20.0, score=2.0),
+        Crater(cx=205.0, cy=152.0, r=25.0, score=2.5),
+        Crater(cx=155.0, cy=302.0, r=30.0, score=3.0),
+        Crater(cx=405.0, cy=402.0, r=35.0, score=3.5),
+        Crater(cx=50.0, cy=50.0, r=15.0, score=1.5),
+        Crater(cx=300.0, cy=200.0, r=18.0, score=1.8),
+        Crater(cx=250.0, cy=350.0, r=22.0, score=2.2),
+        Crater(cx=450.0, cy=100.0, r=28.0, score=2.8),
+    ]
+
+    g_src = build_crater_graph(craters_src, k=5)
+    g_ref = build_crater_graph(craters_ref, k=5)
+
+    assert g_src["descriptors"].shape[1] == g_ref["descriptors"].shape[1], "Descriptor dimensions must match"
+
+    pts_src, pts_ref = match_crater_graphs(g_src, g_ref)
+    assert len(pts_src) == len(pts_ref)
+

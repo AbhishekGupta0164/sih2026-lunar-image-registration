@@ -196,9 +196,15 @@ export const RegisterView: React.FC = () => {
 
   const currentStage = STAGE_DETAILS[currentStageIndex] || STAGE_DETAILS[0];
   const StageIcon = currentStage.icon;
+  const terminalRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   return (
-    <section id="view-register" className="view-section active space-y-6 font-sans">
+    <section id="view-register" className="view-section active space-y-6 font-sans pb-10">
       {/* PAGE HEADER */}
       <div className="flex items-center justify-between flex-wrap gap-4 pb-1">
         <div>
@@ -362,7 +368,7 @@ export const RegisterView: React.FC = () => {
         </div>
 
         {/* 9 Stage Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-3">
           {STAGE_DETAILS.map((stg, idx) => {
             const IconComp = stg.icon;
             const isRunning = isProcessing && activeStepIndex === idx;
@@ -512,7 +518,10 @@ export const RegisterView: React.FC = () => {
             <span className="font-mono text-[9px] text-cyan-400">SELENE-ENGINE v2.0</span>
           </div>
 
-          <div className="h-64 overflow-y-auto p-4.5 space-y-2 font-mono text-[11.5px] leading-relaxed">
+          <div
+            ref={terminalRef}
+            className="h-64 overflow-y-auto p-4.5 space-y-2 font-mono text-[11.5px] leading-relaxed overscroll-contain"
+          >
             {logs.length === 0 ? (
               <div className="text-slate-500 font-mono text-[11.5px]">
                 <span className="text-[#54738c] mr-2.5">[19:52:07]</span>

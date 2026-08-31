@@ -660,9 +660,6 @@ export const LandingPage: React.FC = () => {
               </small>
             </div>
           </footer>
-
-          {/* ── AI ASSISTANT ── */}
-          <AiAssistant />
         </>
       )}
     </>
