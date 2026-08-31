@@ -10,7 +10,12 @@
         "scale": 0.92,
         "translation_x_px": 35.0,
         "translation_y_px": 20.0,
-        "gamma_illumination": 0.7
+        "gamma_illumination": 0.7,
+        "ref_sun_azimuth_deg": 142.1,
+        "ref_sun_elevation_deg": 34.5,
+        "mov_sun_azimuth_deg": 284.3,
+        "mov_sun_elevation_deg": 32.1,
+        "delta_sun_azimuth_deg": 142.20000000000002
     },
     "affine_matrix_2x3": [
         [

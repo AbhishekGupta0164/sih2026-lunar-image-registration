@@ -1,6 +1,9 @@
 {
-    "sun_azimuth_deg": 45.0,
-    "sun_elevation_deg": 30.0,
-    "gsd_m": 0.25,
-    "sensor_id": "OHRC"
+  "sensor_id": "LRO_NAC",
+  "sun_azimuth_deg": 142.1,
+  "sun_elevation_deg": 34.5,
+  "gsd_m": 0.5,
+  "MAP_SCALE": 0.5,
+  "SOLAR_AZIMUTH": 142.1,
+  "SOLAR_ELEVATION": 34.5
 }

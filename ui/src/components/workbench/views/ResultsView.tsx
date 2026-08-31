@@ -239,18 +239,28 @@ export const ResultsView: React.FC = () => {
           {activeTab === 'checker' && (
             <div className="result-pane">
               <div className="h-80 rounded-xl border border-[rgba(146,196,255,0.16)] grid grid-cols-8 grid-rows-8 overflow-hidden relative">
-                {checkerCells.map((isRef, idx) => (
-                  <div key={idx} className="relative overflow-hidden border-[0.5px] border-slate-900/40">
-                    <img
-                      src={isRef ? refUrl : (registeredUrl || srcUrl)}
-                      alt=""
-                      className="w-full h-full object-cover opacity-90 scale-125"
-                    />
-                    <span className="absolute bottom-0.5 right-0.5 font-mono text-[7px] bg-slate-950/70 text-slate-300 px-1 rounded">
-                      {isRef ? 'REF' : registeredUrl ? 'REG' : 'SRC'}
-                    </span>
-                  </div>
-                ))}
+                {checkerCells.map((isRef, idx) => {
+                  const row = Math.floor(idx / 8);
+                  const col = idx % 8;
+                  return (
+                    <div key={idx} className="relative overflow-hidden border-[0.5px] border-slate-900/40">
+                      <img
+                        src={isRef ? refUrl : (registeredUrl || srcUrl)}
+                        alt=""
+                        className="absolute max-w-none opacity-90"
+                        style={{
+                          width: '800%',
+                          height: '800%',
+                          left: `${-(col * 100)}%`,
+                          top: `${-(row * 100)}%`
+                        }}
+                      />
+                      <span className="absolute bottom-0.5 right-0.5 font-mono text-[7px] bg-slate-950/70 text-slate-300 px-1 rounded">
+                        {isRef ? 'REF' : registeredUrl ? 'REG' : 'SRC'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               {!registeredUrl && (
                 <p className="text-[10px] text-warning font-mono mt-2">
