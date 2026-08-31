@@ -24,6 +24,9 @@ class MetricsResult:
     rmse_val_m: float = 0.0
     nni_index: float = 0.0
     grid_coverage_fraction: float = 0.0
+    rmse_vs_gt_px: float | None = None
+    rmse_vs_gt_m: float | None = None
+    provenance: dict | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -35,11 +38,13 @@ def compute_metrics(
     inlier_mask: np.ndarray | None = None,
     gsd_m: float = 1.0,
     H_fit: np.ndarray | None = None,
+    H_gt: np.ndarray | None = None,
     image_shape: tuple[int, int] = (1024, 1024),
     shadow_mask: np.ndarray | None = None,
     pts_src_val: np.ndarray | None = None,
     pts_dst_val: np.ndarray | None = None,
     val_split: float = 0.2,
+    provenance: dict | None = None,
 ) -> MetricsResult:
     """Calculate geodetic accuracy metrics on matched point correspondences.
 
@@ -125,6 +130,18 @@ def compute_metrics(
     nni_val = nni_score(inliers_src, area_shape=image_shape)
     cov_val = grid_coverage(inliers_src, image_shape=image_shape)
 
+    # Independent Ground Truth Warp RMSE (if known GT transformation provided)
+    rmse_vs_gt_px = None
+    rmse_vs_gt_m = None
+    if H_gt is not None and len(inliers_src) > 0:
+        ones = np.ones((len(inliers_src), 1), dtype=np.float32)
+        homo_src = np.hstack([inliers_src, ones])
+        proj = (H_gt @ homo_src.T).T
+        proj_pts = proj[:, :2] / (proj[:, 2:] + 1e-8)
+        res_gt = np.linalg.norm(proj_pts - inliers_dst, axis=1)
+        rmse_vs_gt_px = float(round(np.sqrt(np.mean(res_gt**2)), 4))
+        rmse_vs_gt_m = float(round(rmse_vs_gt_px * gsd_m, 4))
+
     return MetricsResult(
         n_raw=n_raw,
         n_inliers=n_inliers,
@@ -138,6 +155,9 @@ def compute_metrics(
         rmse_val_m=round(rmse_val_m, 4),
         nni_index=round(nni_val, 4),
         grid_coverage_fraction=round(cov_val, 4),
+        rmse_vs_gt_px=rmse_vs_gt_px,
+        rmse_vs_gt_m=rmse_vs_gt_m,
+        provenance=provenance,
     )
 
 
