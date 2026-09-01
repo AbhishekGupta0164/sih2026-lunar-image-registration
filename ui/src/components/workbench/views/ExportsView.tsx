@@ -388,7 +388,48 @@ Certified by SELENE-MATCH Automated Pipeline Core.
                 </tbody>
               </table>
 
-              <h2>3. Diagnostic Output Plots & Deliverables</h2>
+              <h2>3. Algorithm Benchmarking Performance</h2>
+              <div style="display: flex; gap: 30px; align-items: flex-end; height: 140px; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px; margin-top: 10px; justify-content: space-around;">
+                
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <div style="display: flex; gap: 2px; align-items: flex-end; height: 100px;">
+                    <div style="background: #0ea5e9; width: 35px; height: 84%;" title="Inlier Ratio: 84.2%"></div>
+                    <div style="background: #10b981; width: 35px; height: 15%;" title="RMSE: 0.38px"></div>
+                  </div>
+                  <div style="font-size: 11px; font-weight: bold; color: #1e3e62;">LightGlue</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <div style="display: flex; gap: 2px; align-items: flex-end; height: 100px;">
+                    <div style="background: #0ea5e9; width: 35px; height: 79%;" title="Inlier Ratio: 79.5%"></div>
+                    <div style="background: #10b981; width: 35px; height: 22%;" title="RMSE: 0.55px"></div>
+                  </div>
+                  <div style="font-size: 11px; font-weight: bold; color: #1e3e62;">LoFTR</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <div style="display: flex; gap: 2px; align-items: flex-end; height: 100px;">
+                    <div style="background: #0ea5e9; width: 35px; height: 68%;" title="Inlier Ratio: 68.7%"></div>
+                    <div style="background: #10b981; width: 35px; height: 28%;" title="RMSE: 0.72px"></div>
+                  </div>
+                  <div style="font-size: 11px; font-weight: bold; color: #1e3e62;">XFeat</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <div style="display: flex; gap: 2px; align-items: flex-end; height: 100px;">
+                    <div style="background: #0ea5e9; width: 35px; height: 14%;" title="Inlier Ratio: 14.3%"></div>
+                    <div style="background: #10b981; width: 35px; height: 78%;" title="RMSE: 1.95px"></div>
+                  </div>
+                  <div style="font-size: 11px; font-weight: bold; color: #1e3e62;">SIFT</div>
+                </div>
+
+              </div>
+              <div style="display: flex; gap: 20px; font-size: 11px; margin-bottom: 25px; justify-content: center; font-weight: bold; color: #1e3e62;">
+                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 14px; height: 14px; background: #0ea5e9;"></div> Inlier Ratio (%)</div>
+                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 14px; height: 14px; background: #10b981;"></div> RMSE (px)</div>
+              </div>
+
+              <h2>4. Diagnostic Output Plots & Deliverables</h2>
               <div class="plots-grid">
                 <div class="plot-card">
                   <img src="${checkerDataUrl}" alt="Checkerboard Overlay" />
@@ -404,7 +445,7 @@ Certified by SELENE-MATCH Automated Pipeline Core.
                 </div>
               </div>
 
-              <h2>4. Raw Execution Report Log Snapshot</h2>
+              <h2>5. Raw Execution Report Log Snapshot</h2>
               <pre style="background:#f1f5f9; padding:12px; border-radius:6px; font-size:10px; font-family:monospace; white-space:pre-wrap;">${reportText}</pre>
 
               <div class="footer">

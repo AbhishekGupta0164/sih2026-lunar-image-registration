@@ -20,10 +20,12 @@ class MetricsResult:
     ce90_px: float
     ce90_m: float
     mean_residual_px: float
+    max_residual_px: float = 0.0
     rmse_val_px: float = 0.0
     rmse_val_m: float = 0.0
     nni_index: float = 0.0
     grid_coverage_fraction: float = 0.0
+    gsd_m: float = 1.0
     rmse_vs_gt_px: float | None = None
     rmse_vs_gt_m: float | None = None
     provenance: dict | None = None

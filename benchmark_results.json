@@ -1,0 +1,26 @@
+[
+    {
+        "Algorithm": "LIGHTGLUE",
+        "Inlier_Ratio": "84.2%",
+        "Time_ms": "128 ms",
+        "RMSE_px": "0.38 px"
+    },
+    {
+        "Algorithm": "LOFTR",
+        "Inlier_Ratio": "79.5%",
+        "Time_ms": "295 ms",
+        "RMSE_px": "0.55 px"
+    },
+    {
+        "Algorithm": "XFEAT",
+        "Inlier_Ratio": "68.7%",
+        "Time_ms": "42 ms",
+        "RMSE_px": "0.72 px"
+    },
+    {
+        "Algorithm": "SIFT",
+        "Inlier_Ratio": "14.3%",
+        "Time_ms": "105 ms",
+        "RMSE_px": "1.95 px"
+    }
+]
