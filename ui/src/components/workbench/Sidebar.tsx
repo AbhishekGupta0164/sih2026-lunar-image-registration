@@ -175,7 +175,7 @@ export const Sidebar: React.FC = () => {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-500">Team</span>
-              <span className="text-white">5 Members</span>
+              <span className="text-white">6 Members</span>
             </div>
             <div className="pt-1.5 mt-1 border-t border-[rgba(146,196,255,0.07)] flex justify-between items-center">
               <span className="text-slate-500">Mode</span>

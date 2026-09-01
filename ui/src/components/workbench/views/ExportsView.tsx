@@ -344,53 +344,39 @@ Certified by SELENE-MATCH Automated Pipeline Core.
     addToast(`${filename} exported successfully.`, 'success', 'Export Ready');
   };
 
-  const handleDownload = async (productPath: string | undefined, filename: string) => {
-    if (isReal && productPath) {
-      const url = seleneApi.productUrl(productPath);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.target = '_blank';
-      a.click();
-      addLog(`Downloading ${filename} from backend server…`, 'success');
-      addToast(`Downloading ${filename} from server.`, 'success', 'Download Started');
-    } else {
-      if (filename.endsWith('.csv')) {
-        const csvContent = generateCsvContent();
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        addLog(`Generated and downloaded ${filename} with full metrics matrix`, 'success');
-        addToast(`${filename} exported with complete GCP and residual matrix.`, 'success', 'CSV Exported');
-      } else if (filename.endsWith('.pdf') || filename.endsWith('.txt')) {
-        // Build printable HTML report window with real rendered diagnostic plots
-        const reportText = generateReportContent();
-        const [checkerDataUrl, quiverDataUrl, coverageDataUrl, matchesDataUrl] = await Promise.all([
-          generateCanvasPlotDataUrl('checkerboard'),
-          generateCanvasPlotDataUrl('quiver'),
-          generateCanvasPlotDataUrl('coverage'),
-          generateCanvasPlotDataUrl('matches'),
-        ]);
+    const handleDownload = async (productPath: string | undefined, filename: string) => {
+    // 1. PDF / TXT: ALWAYS use the beautiful frontend HTML printable report
+    if (filename.endsWith('.pdf') || filename.endsWith('.txt')) {
+      // 1. OPEN WINDOW IMMEDIATELY to bypass popup blocker!
+      const printWin = window.open('', '_blank');
+      if (!printWin) {
+        addToast('Popup blocked! Please allow popups for this site to generate the PDF.', 'error', 'Action Required');
+        return;
+      }
+      printWin.document.write('<html><head><title>Generating Report...</title><style>body { font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; background: #0f172a; color: #38bdf8; font-size: 20px; }</style></head><body>GENERATING PDF REPORT PLOTS... PLEASE WAIT.</body></html>');
 
-        const logsHtml = logs.map(log => {
-          const color = log.type === 'error' ? '#ef4444' : log.type === 'success' ? '#10b981' : '#64748b';
-          return `<div style="display: flex; gap: 10px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #cbd5e1;">
-            <span style="color: #94a3b8; width: 85px; flex-shrink: 0;">[${log.timestamp}]</span>
-            <span style="color: ${color}; font-weight: 700; width: 65px; flex-shrink: 0; text-transform: uppercase;">${log.type}</span>
-            <span style="color: #334155;">${log.message}</span>
-          </div>`;
-        }).join('');
+      const reportText = generateReportContent();
+      const [checkerDataUrl, quiverDataUrl, coverageDataUrl, matchesDataUrl] = await Promise.all([
+        generateCanvasPlotDataUrl('checkerboard'),
+        generateCanvasPlotDataUrl('quiver'),
+        generateCanvasPlotDataUrl('coverage'),
+        generateCanvasPlotDataUrl('matches'),
+      ]);
 
-        const printWin = window.open('', '_blank');
-        if (printWin) {
-          printWin.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
+      const logsHtml = logs.map(log => {
+        const color = log.type === 'error' ? '#ef4444' : log.type === 'success' ? '#10b981' : '#64748b';
+        return `<div style="display: flex; gap: 10px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #cbd5e1;">
+          <span style="color: #94a3b8; width: 85px; flex-shrink: 0;">[${log.timestamp}]</span>
+          <span style="color: ${color}; font-weight: 700; width: 65px; flex-shrink: 0; text-transform: uppercase;">${log.type}</span>
+          <span style="color: #334155;">${log.message}</span>
+        </div>`;
+      }).join('');
+
+      printWin.document.open();
+      printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
               <title>SELENE-MATCH Registration Deliverable Report - ${jobId || 'job_demo_01'}</title>
               <style>
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
@@ -439,192 +425,220 @@ Certified by SELENE-MATCH Automated Pipeline Core.
                 .bar-green { background: linear-gradient(180deg, #34d399 0%, #059669 100%); }
                 .bar-label { font-size: 12px; font-weight: 700; color: #334155; }
               </style>
-            </head>
-            <body>
-              <div class="report-container">
-                <div class="header">
-                  <div>
-                    <h1>LUNAR IMAGE REGISTRATION REPORT</h1>
-                    <div class="meta">
-                      JOB ID: <span style="color:#0ea5e9">${jobId || 'job_demo_01'}</span> | 
-                      TIMESTAMP: ${new Date().toISOString()}
-                    </div>
-                  </div>
-                  <div>
-                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/ISRO_Logo.svg/1200px-ISRO_Logo.svg.png" style="height: 40px; opacity: 0.8;" />
+          </head>
+          <body>
+            <div class="report-container">
+              <div class="header">
+                <div>
+                  <h1>LUNAR IMAGE REGISTRATION REPORT</h1>
+                  <div class="meta">
+                    JOB ID: <span style="color:#0ea5e9">${jobId || 'job_demo_01'}</span> | 
+                    TIMESTAMP: ${new Date().toISOString()}
                   </div>
                 </div>
-
-                <!-- NEW CONCLUSION BANNER -->
-                <div class="conclusion-banner">
-                  <div class="conclusion-text">
-                    <h3>Sub-Pixel Alignment Certified</h3>
-                    <p>
-                      The source image (${sourceImage?.name || 'synthetic'}) has been successfully registered to the reference map (${referenceImage?.name || 'reference'}) with high geometric fidelity. 
-                      Illumination differences were ignored by the deep-learning matcher, resulting in a perfectly aligned, mathematically certified GeoTIFF product ready for scientific analysis.
-                    </p>
-                  </div>
-                  <div class="conclusion-metric">
-                    <div class="val">${rmsePx.toFixed(2)}<span style="font-size: 16px; color: #94a3b8;">px</span></div>
-                    <div class="lbl">Final RMSE Error</div>
-                  </div>
-                </div>
-
-                <h2>1. Registration Calculations & Metrics Matrix</h2>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Metric Parameter</th>
-                      <th>Pixel-Space</th>
-                      <th>Metre-Space (GSD ${gsdM}m)</th>
-                      <th>Technical Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td>Fit RMSE (Training GCPs)</td><td>${rmsePx.toFixed(4)} px</td><td>${rmseM.toFixed(4)} m</td><td>Root Mean Square Error across training GCPs</td></tr>
-                    <tr><td>Val RMSE (80/20 Holdout)</td><td>${rmseValPx.toFixed(4)} px</td><td>${rmseValM.toFixed(4)} m</td><td>Independent 80/20 holdout cross-validation RMSE</td></tr>
-                    <tr><td>CE90 Circular Error</td><td>${ce90Px.toFixed(4)} px</td><td>${ce90M.toFixed(4)} m</td><td>90th percentile circular error radius</td></tr>
-                    <tr><td>Maximum Localized Error</td><td>${(rmsePx * 2.1).toFixed(4)} px</td><td>${(rmsePx * 2.1 * gsdM).toFixed(4)} m</td><td>Maximum spatial displacement on map</td></tr>
-                    <tr><td>MAGSAC++ Inliers</td><td>${inliersCount} pts</td><td>${inlierRatio}% ratio</td><td>Robust geometric inlier GCP count & ratio</td></tr>
-                    <tr><td>Grid Coverage Area</td><td>${coverageFraction}%</td><td>${Math.round(coverageFraction * 0.64)}/64 cells</td><td>8x8 uniform sampling spatial coverage</td></tr>
-                  </tbody>
-                </table>
-
-                <h2>2. Mission Telemetry & Sensor Parameters</h2>
-                <table>
-                  <tbody>
-                    <tr><td><b>Reference Image (Fixed):</b></td><td>${referenceImage?.name || 'reference.png'}</td><td><b>Transformation Model:</b></td><td>Tier 2 DEM + Map Projection (TPS)</td></tr>
-                    <tr><td><b>Source Image (Moving):</b></td><td>${sourceImage?.name || 'synthetic_target.png'}</td><td><b>Sub-Pixel Engine:</b></td><td>Inverse-Compositional LK (IC-LK ECC)</td></tr>
-                    <tr><td><b>GSD Ratio:</b></td><td>${(0.25 / 0.50).toFixed(2)}x (Resampled)</td><td><b>Outlier Estimator:</b></td><td>USAC / MAGSAC++ Robust Fit</td></tr>
-                    <tr><td><b>Execution Time:</b></td><td>${execTime} s</td><td><b>Matcher Expert:</b></td><td>${methodLabel}</td></tr>
-                  </tbody>
-                </table>
-
-                <h2>3. AI Matcher Benchmarking & Correspondence Visual</h2>
-                <div class="match-card">
-                  <img src="${matchesDataUrl}" alt="Dual Pane Match Visualization" />
-                  <p>DUAL-PANE MATCHER CORRESPONDENCE EXPERT VISUALIZATION (${methodLabel})</p>
-                </div>
-                
-                <div class="chart-container">
-                  <div style="display: flex; gap: 40px; justify-content: space-around; padding: 10px 20px;">
-                    
-                    <div class="bar-group">
-                      <div class="bar-wrapper">
-                        <div class="bar bar-blue" style="height: 84%;" title="Inlier Ratio: 84.2%"></div>
-                        <div class="bar bar-green" style="height: 15%;" title="RMSE: 0.38px"></div>
-                      </div>
-                      <div class="bar-label">LightGlue</div>
-                    </div>
-
-                    <div class="bar-group">
-                      <div class="bar-wrapper">
-                        <div class="bar bar-blue" style="height: 79%;" title="Inlier Ratio: 79.5%"></div>
-                        <div class="bar bar-green" style="height: 22%;" title="RMSE: 0.55px"></div>
-                      </div>
-                      <div class="bar-label">LoFTR</div>
-                    </div>
-
-                    <div class="bar-group">
-                      <div class="bar-wrapper">
-                        <div class="bar bar-blue" style="height: 68%;" title="Inlier Ratio: 68.7%"></div>
-                        <div class="bar bar-green" style="height: 28%;" title="RMSE: 0.72px"></div>
-                      </div>
-                      <div class="bar-label">XFeat</div>
-                    </div>
-
-                    <div class="bar-group">
-                      <div class="bar-wrapper">
-                        <div class="bar bar-blue" style="height: 14%;" title="Inlier Ratio: 14.3%"></div>
-                        <div class="bar bar-green" style="height: 78%;" title="RMSE: 1.95px"></div>
-                      </div>
-                      <div class="bar-label">SIFT</div>
-                    </div>
-
-                  </div>
-                  
-                  <div style="display: flex; gap: 30px; font-size: 12px; margin-top: 20px; justify-content: center; color: #475569; font-weight: 600;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);"></div> Inlier Ratio (%)
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(180deg, #34d399 0%, #059669 100%);"></div> RMSE (px) (Lower is Better)
-                    </div>
-                  </div>
-                </div>
-
-                <h2>4. Diagnostic Output Plots & Visual Verification</h2>
-                <div class="plots-grid">
-                  <div class="plot-card">
-                    <img src="${checkerDataUrl}" alt="Checkerboard Overlay" />
-                    <p>8x8 CHECKERBOARD OVERLAY</p>
-                  </div>
-                  <div class="plot-card">
-                    <img src="${quiverDataUrl}" alt="Quiver Vector Plot" />
-                    <p>DISPLACEMENT QUIVER PLOT</p>
-                  </div>
-                  <div class="plot-card">
-                    <img src="${coverageDataUrl}" alt="Coverage Heatmap" />
-                    <p>SPATIAL COVERAGE MAP</p>
-                  </div>
-                </div>
-
-                <h2>5. Execution Event Logs & System Snapshot</h2>
-                <div style="background:#f8fafc; padding:15px; border-radius:8px; font-size:11px; font-family: 'Space Mono', monospace; border: 1px solid #e2e8f0; margin-bottom: 30px; max-height: 500px; overflow-y: auto;">
-                  ${logsHtml}
-                </div>
-
-                <div class="footer">
-                  Certified by SELENE-MATCH Automated Pipeline Core • Generated for ISRO Lunar Science Operations
+                <div>
+                  <img src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/ISRO_Logo.svg/1200px-ISRO_Logo.svg.png" style="height: 40px; opacity: 0.8;" />
                 </div>
               </div>
-              <script>
-                window.onload = function() {
-                  setTimeout(window.print, 500);
-                };
-              </script>
-            </body>
-            </html>
-          `);
-          printWin.document.close();
-        }
 
-        addLog(`Generated and opened full PDF deliverable report with bundled calculation details & plots`, 'success');
-      } else if (filename.includes('checkerboard')) {
-        downloadCanvasPlot('checkerboard', filename);
-      } else if (filename.includes('quiver')) {
-        downloadCanvasPlot('quiver', filename);
-      } else if (filename.includes('coverage')) {
-        downloadCanvasPlot('coverage', filename);
-      } else {
-        // GeoTIFF / Registered Raster
-        const imgUrl = sourceImage?.previewUrl || '/synthetic/synthetic_target.png';
-        fetch(imgUrl)
-          .then(res => res.blob())
-          .then(blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-            addLog(`Downloaded registered raster ${filename}`, 'success');
-            addToast(`${filename} exported successfully.`, 'success', 'Raster Exported');
-          })
-          .catch(() => {
-            const content = 'SELENE-MATCH Registered Raster Data Product\n';
-            const blob = new Blob([content], { type: 'image/tiff' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-          });
-      }
+              <!-- NEW CONCLUSION BANNER -->
+              <div class="conclusion-banner">
+                <div class="conclusion-text">
+                  <h3>Sub-Pixel Alignment Certified</h3>
+                  <p>
+                    The source image (${sourceImage?.name || 'synthetic'}) has been successfully registered to the reference map (${referenceImage?.name || 'reference'}) with high geometric fidelity. 
+                    Illumination differences were ignored by the deep-learning matcher, resulting in a perfectly aligned, mathematically certified GeoTIFF product ready for scientific analysis.
+                  </p>
+                </div>
+                <div class="conclusion-metric">
+                  <div class="val">${rmsePx.toFixed(2)}<span style="font-size: 16px; color: #94a3b8;">px</span></div>
+                  <div class="lbl">Final RMSE Error</div>
+                </div>
+              </div>
+
+              <h2>1. Registration Calculations & Metrics Matrix</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Metric Parameter</th>
+                    <th>Pixel-Space</th>
+                    <th>Metre-Space (GSD ${gsdM}m)</th>
+                    <th>Technical Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Fit RMSE (Training GCPs)</td><td>${rmsePx.toFixed(4)} px</td><td>${rmseM.toFixed(4)} m</td><td>Root Mean Square Error across training GCPs</td></tr>
+                  <tr><td>Val RMSE (80/20 Holdout)</td><td>${rmseValPx.toFixed(4)} px</td><td>${rmseValM.toFixed(4)} m</td><td>Independent 80/20 holdout cross-validation RMSE</td></tr>
+                  <tr><td>CE90 Circular Error</td><td>${ce90Px.toFixed(4)} px</td><td>${ce90M.toFixed(4)} m</td><td>90th percentile circular error radius</td></tr>
+                  <tr><td>Maximum Localized Error</td><td>${(rmsePx * 2.1).toFixed(4)} px</td><td>${(rmsePx * 2.1 * gsdM).toFixed(4)} m</td><td>Maximum spatial displacement on map</td></tr>
+                  <tr><td>MAGSAC++ Inliers</td><td>${inliersCount} pts</td><td>${inlierRatio}% ratio</td><td>Robust geometric inlier GCP count & ratio</td></tr>
+                  <tr><td>Grid Coverage Area</td><td>${coverageFraction}%</td><td>${Math.round(coverageFraction * 0.64)}/64 cells</td><td>8x8 uniform sampling spatial coverage</td></tr>
+                </tbody>
+              </table>
+
+              <h2>2. Mission Telemetry & Sensor Parameters</h2>
+              <table>
+                <tbody>
+                  <tr><td><b>Reference Image (Fixed):</b></td><td>${referenceImage?.name || 'reference.png'}</td><td><b>Transformation Model:</b></td><td>Tier 2 DEM + Map Projection (TPS)</td></tr>
+                  <tr><td><b>Source Image (Moving):</b></td><td>${sourceImage?.name || 'synthetic_target.png'}</td><td><b>Sub-Pixel Engine:</b></td><td>Inverse-Compositional LK (IC-LK ECC)</td></tr>
+                  <tr><td><b>GSD Ratio:</b></td><td>${(0.25 / 0.50).toFixed(2)}x (Resampled)</td><td><b>Outlier Estimator:</b></td><td>USAC / MAGSAC++ Robust Fit</td></tr>
+                  <tr><td><b>Execution Time:</b></td><td>${execTime} s</td><td><b>Matcher Expert:</b></td><td>${methodLabel}</td></tr>
+                </tbody>
+              </table>
+
+              <h2>3. AI Matcher Benchmarking & Correspondence Visual</h2>
+              <div class="match-card">
+                <img src="${matchesDataUrl}" alt="Dual Pane Match Visualization" />
+                <p>DUAL-PANE MATCHER CORRESPONDENCE EXPERT VISUALIZATION (${methodLabel})</p>
+              </div>
+              
+              <div class="chart-container">
+                <div style="display: flex; gap: 40px; justify-content: space-around; padding: 10px 20px;">
+                  
+                  <div class="bar-group">
+                    <div class="bar-wrapper">
+                      <div class="bar bar-blue" style="height: 84%;" title="Inlier Ratio: 84.2%"></div>
+                      <div class="bar bar-green" style="height: 15%;" title="RMSE: 0.38px"></div>
+                    </div>
+                    <div class="bar-label">LightGlue</div>
+                  </div>
+
+                  <div class="bar-group">
+                    <div class="bar-wrapper">
+                      <div class="bar bar-blue" style="height: 79%;" title="Inlier Ratio: 79.5%"></div>
+                      <div class="bar bar-green" style="height: 22%;" title="RMSE: 0.55px"></div>
+                    </div>
+                    <div class="bar-label">LoFTR</div>
+                  </div>
+
+                  <div class="bar-group">
+                    <div class="bar-wrapper">
+                      <div class="bar bar-blue" style="height: 68%;" title="Inlier Ratio: 68.7%"></div>
+                      <div class="bar bar-green" style="height: 28%;" title="RMSE: 0.72px"></div>
+                    </div>
+                    <div class="bar-label">XFeat</div>
+                  </div>
+
+                  <div class="bar-group">
+                    <div class="bar-wrapper">
+                      <div class="bar bar-blue" style="height: 14%;" title="Inlier Ratio: 14.3%"></div>
+                      <div class="bar bar-green" style="height: 78%;" title="RMSE: 1.95px"></div>
+                    </div>
+                    <div class="bar-label">SIFT</div>
+                  </div>
+
+                </div>
+                
+                <div style="display: flex; gap: 30px; font-size: 12px; margin-top: 20px; justify-content: center; color: #475569; font-weight: 600;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);"></div> Inlier Ratio (%)
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(180deg, #34d399 0%, #059669 100%);"></div> RMSE (px) (Lower is Better)
+                  </div>
+                </div>
+              </div>
+
+              <h2>4. Diagnostic Output Plots & Visual Verification</h2>
+              <div class="plots-grid">
+                <div class="plot-card">
+                  <img src="${checkerDataUrl}" alt="Checkerboard Overlay" />
+                  <p>8x8 CHECKERBOARD OVERLAY</p>
+                </div>
+                <div class="plot-card">
+                  <img src="${quiverDataUrl}" alt="Quiver Vector Plot" />
+                  <p>DISPLACEMENT QUIVER PLOT</p>
+                </div>
+                <div class="plot-card">
+                  <img src="${coverageDataUrl}" alt="Coverage Heatmap" />
+                  <p>SPATIAL COVERAGE MAP</p>
+                </div>
+              </div>
+
+              <h2>5. Execution Event Logs & System Snapshot</h2>
+              <div style="background:#f8fafc; padding:15px; border-radius:8px; font-size:11px; font-family: 'Space Mono', monospace; border: 1px solid #e2e8f0; margin-bottom: 30px; max-height: 500px; overflow-y: auto;">
+                ${logsHtml}
+              </div>
+
+              <div class="footer">
+                Certified by SELENE-MATCH Automated Pipeline Core • Generated for ISRO Lunar Science Operations
+              </div>
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(window.print, 500);
+              };
+            </script>
+          </body>
+          </html>
+        `);
+      printWin.document.close();
+      addLog(`Generated and opened full PDF deliverable report with bundled calculation details & plots`, 'success');
+      return;
+    }
+
+    // 2. TIF or other real backend files
+    if (isReal && productPath && !filename.endsWith('.csv') && !filename.includes('checkerboard') && !filename.includes('quiver') && !filename.includes('coverage')) {
+      const url = seleneApi.productUrl(productPath);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.target = '_blank';
+      a.click();
+      addLog(`Downloading ${filename} from backend server…`, 'success');
+      addToast(`Downloading ${filename} from server.`, 'success', 'Download Started');
+      return;
+    }
+
+    // 3. CSV logic
+    if (filename.endsWith('.csv')) {
+      const csvContent = generateCsvContent();
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      addLog(`Generated and downloaded ${filename} with full metrics matrix`, 'success');
+      addToast(`${filename} exported with complete GCP and residual matrix.`, 'success', 'CSV Exported');
+      return;
+    }
+    
+    // 4. Canvas Plot Images (Checkerboard / Quiver / Coverage)
+    if (filename.includes('checkerboard')) {
+      downloadCanvasPlot('checkerboard', filename);
+    } else if (filename.includes('quiver')) {
+      downloadCanvasPlot('quiver', filename);
+    } else if (filename.includes('coverage')) {
+      downloadCanvasPlot('coverage', filename);
+    } else {
+      // 5. Fallback GeoTIFF mock download if not real
+      const imgUrl = sourceImage?.previewUrl || '/synthetic/synthetic_target.png';
+      fetch(imgUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+          addLog(`Downloaded registered raster ${filename}`, 'success');
+          addToast(`${filename} exported successfully.`, 'success', 'Raster Exported');
+        })
+        .catch(() => {
+          const content = 'SELENE-MATCH Registered Raster Data Product\n';
+          const blob = new Blob([content], { type: 'image/tiff' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
     }
   };
-
   const exports = [
     {
       icon: <ImageIcon className="w-6 h-6 text-cyan-400" />,
