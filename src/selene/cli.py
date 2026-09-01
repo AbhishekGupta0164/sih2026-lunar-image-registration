@@ -261,18 +261,7 @@ def run_pipeline(
         pass
 
     deep_available = False
-    try:
-        import torch, kornia, lightglue
-        deep_available = True
-    except Exception:
-        pass
-
     torch_ver = "none"
-    try:
-        import torch
-        torch_ver = torch.__version__
-    except ImportError:
-        pass
 
     provenance = {
         "git_commit": git_commit,
@@ -303,18 +292,24 @@ def run_pipeline(
         json.dump(metrics_dict, f, indent=2)
 
     # Verification Plots
+    print("DEBUG: starting plot_checkerboard", flush=True)
     p_checker = plot_checkerboard(img_ref, warped, out_path / "plot_checkerboard.png")
+    print("DEBUG: starting plot_quiver", flush=True)
     p_quiver = plot_quiver(pts_src_final, pts_ref_final, out_path / "plot_quiver.png", image_shape=ref_shape)
+    print("DEBUG: starting plot_coverage_heatmap", flush=True)
     p_heatmap = plot_coverage_heatmap(pts_ref_final, out_path / "plot_coverage.png", image_shape=ref_shape)
+    print("DEBUG: starting plot_residual_heatmap", flush=True)
     p_residual = plot_residual_heatmap(pts_src_final, pts_ref_final, out_path / "plot_residual_heatmap.png", image_shape=ref_shape)
 
     # Deliverable PDF
+    print("DEBUG: starting generate_pdf_report", flush=True)
     pdf_report = generate_pdf_report(
         job_dir=out_path,
         metrics=metrics,
         job_id=job_id,
         plots=[p_checker, p_quiver, p_heatmap],
     )
+    print("DEBUG: finished generate_pdf_report", flush=True)
 
     log.info(f"Pipeline completed successfully. RMSE={metrics.rmse_m:.2f} m ({metrics.rmse_px:.2f} px)")
 

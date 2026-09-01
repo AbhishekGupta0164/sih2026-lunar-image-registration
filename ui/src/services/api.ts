@@ -37,7 +37,7 @@ interface AsyncJobResponse {
   logs_url: string;
 }
 
-const POLL_INTERVAL_MS = 1_200;
+const POLL_INTERVAL_MS = 200;
 
 export class SeleneApiService {
   private static instance: SeleneApiService;
@@ -108,9 +108,14 @@ export class SeleneApiService {
             STAGE_LABELS.length - 1,
           );
           if (newStepIdx > stepIdx || (status.done && !status.error)) {
+            // If the backend processed multiple stages between polls, emit all missed stages
+            for (let i = stepIdx + 1; i <= newStepIdx; i++) {
+              const label = (i === newStepIdx && status.stage) ? status.stage : (STAGE_LABELS[i] || 'Processing…');
+              // Interpolate progress linearly for intermediate steps
+              const simulatedProgress = Math.round((i / STAGE_LABELS.length) * 100);
+              onStep(i, label, (i === newStepIdx) ? Math.round(status.progress * 100) : simulatedProgress);
+            }
             stepIdx = newStepIdx;
-            const label = status.stage || STAGE_LABELS[stepIdx] || 'Processing…';
-            onStep(stepIdx, label, Math.round(status.progress * 100));
           }
 
           if (status.done) {
